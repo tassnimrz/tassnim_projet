@@ -5,16 +5,11 @@ use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
-/*
-|--------------------------------------------------------------------------
-| Web Routes
-|--------------------------------------------------------------------------
-|
-| Here is where you can register web routes for your application. These
-| routes are loaded by the RouteServiceProvider within a group which
-| contains the "web" middleware group. Now create something great!
-|
-*/
+use App\Http\Controllers\UserController;
+// routes/web.php
+
+use App\Http\Controllers\Auth\LoginController;
+
 
 Route::get('/', function () {
     return Inertia::render('Welcome', [
@@ -24,6 +19,32 @@ Route::get('/', function () {
         'phpVersion' => PHP_VERSION,
     ]);
 });
+
+
+Route::get('/', function () {
+    return view('salwa');
+});
+
+
+Route::get('login', [LoginController::class, 'showLoginForm'])->name('login');
+
+
+// Afficher le formulaire de connexion
+Route::get('login', [LoginController::class, 'showLoginForm'])->name('login');
+
+// Traiter la connexion
+Route::post('login', [LoginController::class, 'login'])->name('login.submit');
+
+// Déconnecter l'utilisateur
+Route::post('logout', [LoginController::class, 'logout'])->name('logout');
+
+
+    Route::get('/admin/users/create', [UserController::class, 'create'])->name('users.create');
+    Route::post('/admin/users', [UserController::class, 'store'])->name('users.store');
+
+
+
+
 
 Route::get('/dashboard', function () {
     return Inertia::render('Dashboard');
