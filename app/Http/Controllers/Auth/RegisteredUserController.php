@@ -34,13 +34,13 @@ class RegisteredUserController extends Controller
         // Validation des données, y compris le champ 'role'
         $request->validate([
             'name' => 'required|string|max:255',
-            'email' => 'required|string|lowercase|email|max:255|unique:'.User::class,
+            'email' => 'required|string|lowercase|email|max:255|unique:' . User::class,
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
-            'tel' => 'required|string|max:15', // Validation du téléphone
-            'adresse' => 'required|string|max:255', // Validation de l'adresse
-            'date_naissance' => 'required|date|before:today', // Validation de la date de naissance
-            'status' => 'required|string|in:active,inactive', // Validation du status
-            'role' => ['required', 'string', 'in:medecin,secretaire,patient'], // Validation du rôle
+            'tel' => 'required|string|max:15',
+            'adresse' => 'required|string|max:255',
+            'date_naissance' => 'required|date|before:today',
+            'status' => 'required|string|in:active,inactive',
+            'role' => ['required', 'string', 'in:medecin,secretaire,patient'],
         ]);
 
         // Créer un utilisateur avec les informations validées
@@ -54,16 +54,25 @@ class RegisteredUserController extends Controller
             'status' => $request->status,
         ]);
 
-        // Assigner le rôle à l'utilisateur (medecin, secretaire, patient)
+        // Assigner le rôle à l'utilisateur
         $user->assignRole($request->role);
 
-        // Déclencher l'événement "Registered" pour la notification
+        // Déclencher l'événement "Registered"
         event(new Registered($user));
 
-        // Connecter l'utilisateur immédiatement après l'enregistrement
+        // Connecter l'utilisateur après enregistrement
         Auth::login($user);
 
-        // Rediriger vers la page d'accueil ou vers le tableau de bord approprié
-        return redirect(RouteServiceProvider::HOME);
+        // Redirection vers le bon tableau de bord selon le rôle
+        if ($user->hasRole('medecin')) {
+            return redirect(RouteServiceProvider::MEDECIN);
+        } elseif ($user->hasRole('secretaire')) {
+            return redirect(RouteServiceProvider::SECRETAIRE);
+        } elseif ($user->hasRole('patient')) {
+            return redirect(RouteServiceProvider::PATIENT);
+        } else {
+            return redirect(RouteServiceProvider::HOME);
+        }
     }
+
 }
