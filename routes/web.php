@@ -18,7 +18,6 @@ Route::get('/', [AuthController::class, 'index']);
 Route::post('/login', [AuthController::class, 'handleLogin'])->name('login');
 
 
-Route::get('/register', [RegisteredUserController::class, 'create'])->name('register');
 
 
 Route::post('register', [RegisteredUserController::class, 'store']);
@@ -121,11 +120,13 @@ Route::put('/dossier-medical/{id}', [DossierMedicalController::class, 'update'])
 // Suppression d'un dossier médical
 Route::delete('/dossier-medical/{id}', [DossierMedicalController::class, 'destroy'])->name('dossier-medical.destroy');
 
+Route::get('/register', [RegisteredUserController::class, 'create'])->name('register');
 
 
 
 Route::get('/', function () {
-    // return view('auth.register');
+    //return view('auth.register');
    // return view('auth.login');
-   return view('fiche-patient.create');
+  // return view('fiche-patient.index');
+  return view('menu');
  });

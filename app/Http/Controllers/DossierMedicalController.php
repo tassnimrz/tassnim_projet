@@ -48,7 +48,7 @@ class DossierMedicalController extends Controller
     // Si aucun dossier médical n'existe, créer un nouveau dossier médical
     DossierMedical::create($validatedData);
 
-       
+
 
         // Rediriger avec un message de succès
         return redirect()->route('dossier-medical.index')->with('success', 'Dossier médical créé avec succès!');
@@ -60,13 +60,21 @@ class DossierMedicalController extends Controller
      * @return \Illuminate\View\View
      */
     public function index()
-    {
-        // Récupérer tous les dossiers médicaux
-        $dossiersMedicaux = DossierMedical::all();
+{
+    // Récupérer tous les dossiers médicaux avec la relation 'fichePatient'
+    $dossiersMedicaux = DossierMedical::with('fichePatient')->get();
 
-        // Retourner la vue avec les dossiers médicaux
-        return view('dossier-medical.index', compact('dossiersMedicaux'));
+    // Vérifier si des dossiers sont récupérés
+    if ($dossiersMedicaux->isEmpty()) {
+        session()->flash('error', 'Aucun dossier médical disponible.');
     }
+
+    // Retourner la vue avec les dossiers médicaux
+    return view('dossier-medical.index', compact('dossiersMedicaux'));
+}
+
+
+
 
     /**
      * Affiche un dossier médical spécifique.
