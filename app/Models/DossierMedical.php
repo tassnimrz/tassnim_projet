@@ -20,4 +20,11 @@ class DossierMedical extends Model
     {
         return $this->belongsTo(FichePatient::class, 'fiche_patient_id');
     }
+
+
+    // Relation avec les certificats médicaux
+    public function certificats()
+    {
+        return $this->hasMany(Certificat::class);
+    }
 }
