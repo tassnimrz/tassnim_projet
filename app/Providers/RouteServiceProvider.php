@@ -21,7 +21,7 @@ class RouteServiceProvider extends ServiceProvider
 public const MEDECIN = '/dashboard/medecin';
 public const SECRETAIRE = '/dashboard/secretaire';
 public const PATIENT = '/dashboard/patient';
-public const HOME = '/home';
+public const HOME = '/dashboard';
 
 
     /**

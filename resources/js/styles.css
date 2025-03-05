@@ -1,0 +1,93 @@
+/* Global Styles */
+body {
+    background-color: #f4f7f6;
+    font-family: 'Arial', sans-serif;
+    color: #333;
+  }
+  
+  .navbar-custom {
+    background-color: #007BFF;
+  }
+  
+  .navbar-custom .navbar-brand {
+    color: white;
+  }
+  
+  .search-bar {
+    display: flex;
+    align-items: center;
+  }
+  
+  .search-bar input {
+    margin-right: 10px;
+  }
+  
+  .search-bar button {
+    background-color: transparent;
+    border: none;
+  }
+  
+  .header-icons {
+    display: flex;
+    align-items: center;
+  }
+  
+  .header-icons .icon {
+    margin-right: 15px;
+    cursor: pointer;
+    color: white;
+  }
+  
+  .sidebar-container {
+    background-color: #ffffff;
+    height: 100vh;
+    padding-top: 20px;
+  }
+  
+  .sidebar {
+    width: 100%;
+  }
+  
+  .sidebar .nav-item {
+    padding: 10px 15px;
+    font-size: 16px;
+    color: #333;
+    text-transform: capitalize;
+    cursor: pointer;
+  }
+  
+  .sidebar .nav-item:hover {
+    background-color: #007BFF;
+    color: white;
+  }
+  
+  .content-container {
+    background-color: #ffffff;
+    padding: 20px;
+  }
+  
+  .welcome-message {
+    font-size: 24px;
+    color: #007BFF;
+    margin-top: 50px;
+  }
+  .content-container {
+    background: url('') no-repeat center center fixed;
+    background-size: cover;
+    height: 100vh;
+    filter: brightness(0.8);
+  }
+  
+  .welcome-message {
+    color: rgb(14, 13, 13);
+    font-size: 24px;
+    margin-top: 20px;
+  }
+  .toast-img {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    object-fit: cover;
+  }
+  
+  

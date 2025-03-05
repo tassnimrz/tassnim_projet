@@ -52,6 +52,7 @@ class RegisteredUserController extends Controller
             'adresse' => $request->adresse,
             'date_naissance' => $request->date_naissance,
             'status' => $request->status,
+            'role' => $request->role, // Ajout du rôle
         ]);
 
         // Assigner le rôle à l'utilisateur

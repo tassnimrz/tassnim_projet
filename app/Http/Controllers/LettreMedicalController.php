@@ -7,6 +7,9 @@ use App\Models\DossierMedical;
 use App\Models\User;
 use Illuminate\Http\Request;
 
+
+
+
 class LettreMedicalController extends Controller
 {
     /**
@@ -105,4 +108,7 @@ class LettreMedicalController extends Controller
 
         return redirect()->route('lettres.index')->with('success', 'Lettre médicale supprimée avec succès.');
     }
+
+
 }
+

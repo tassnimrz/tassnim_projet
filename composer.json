@@ -4,18 +4,19 @@
     "description": "The skeleton application for the Laravel framework.",
     "keywords": ["laravel", "framework"],
     "license": "MIT",
-    "require": {
+   "require": {
         "php": "^8.1",
         "guzzlehttp/guzzle": "^7.2",
-        "inertiajs/inertia-laravel": "^0.6.8",
+        "inertiajs/inertia-laravel": "^2.0",
         "laravel/framework": "^10.10",
-        "laravel/sanctum": "^3.2",
+        "laravel/sanctum": "^3.3",
         "laravel/tinker": "^2.8",
         "laravel/ui": "^4.6",
         "pusher/pusher-php-server": "^7.2",
-        "spatie/laravel-permission": "^6.13",
-        "tightenco/ziggy": "^2.0"
+        "spatie/laravel-permission": "^6.16",
+        "tightenco/ziggy": "*"
     },
+
     "require-dev": {
         "fakerphp/faker": "^1.9.1",
         "laravel/breeze": "^1.29",
@@ -62,11 +63,9 @@
         "optimize-autoloader": true,
         "preferred-install": "dist",
         "sort-packages": true,
-        "allow-plugins": {
-            "pestphp/pest-plugin": true,
-            "php-http/discovery": true
-        }
-    },
-    "minimum-stability": "stable",
-    "prefer-stable": true
+        "prefer-stable": true,
+        "minimum-stability": "dev",
+         "prefer-stable": true
+
+    }
 }
