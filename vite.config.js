@@ -8,13 +8,20 @@ export default defineConfig({
             'resources/js/app.js',
             'resources/js/medecin.jsx',
             'resources/js/secritaire.jsx'  ,
-            'resources/js/showDossierMedical.jsx'  ,
+            'resources/js/admin.jsx'  ,
+            'resources/js/services.jsx',
+            'resources/js/reports.jsx',
+            'resources/js/Profil.jsx'
         ],
         refresh: true,
     }),
     ],
     server: {
-        host: '127.0.0.1',
-        port: 5173,
+      proxy: {
+        '/api': 'http://127.0.0.1:8000', // Proxy pour API Laravel
+      },
+      host: '127.0.0.1',
+        
+      port: 5173,
     }
 });

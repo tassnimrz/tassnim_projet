@@ -151,3 +151,4 @@ class FichePatientController extends Controller
         return redirect()->route('fiche-patient.index')->with('success', 'Fiche patient et son dossier médical supprimés avec succès!');
     }
 }
+

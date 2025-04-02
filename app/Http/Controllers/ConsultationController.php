@@ -136,4 +136,5 @@ class ConsultationController extends Controller
         $consultation->delete();
         return redirect()->route('consultations.index')->with('success', 'Consultation supprimée avec succès.');
     }
+    
 }

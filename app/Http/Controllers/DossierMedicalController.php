@@ -148,13 +148,4 @@ class DossierMedicalController extends Controller
         // Rediriger avec un message de succès
         return redirect()->route('dossier-medical.index')->with('success', 'Dossier médical supprimé avec succès!');
     }
-    public function getDossierMedicalData($id)
-{
-    // Récupérer les données au format JSON
-    $dossierMedical = DossierMedical::with('fichePatient')->findOrFail($id);
-
-    // Retourner les données sous forme de JSON
-    return response()->json($dossierMedical);
-}
-
 }

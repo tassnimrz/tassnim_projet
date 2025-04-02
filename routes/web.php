@@ -253,3 +253,17 @@ Route::get('/lettres-medicales/create', [LettreMedicalController::class, 'create
 
 // Enregistrer une nouvelle lettre médicale
 Route::post('/lettres-medicales', [LettreMedicalController::class, 'store'])->name('lettres_medicales.store');
+
+use App\Http\Controllers\ReportController;
+
+Route::get('/reports', [ReportController::class, 'index']);
+Route::get('/api/reports', [ReportController::class, 'getReports']);
+
+use App\Http\Controllers\AvisController;
+
+Route::get('/admin/dashboard', [AvisController::class, 'index'])->name('admin.dashboard');
+
+
+Route::get('/profil', function(){
+    return view('profil');
+});
