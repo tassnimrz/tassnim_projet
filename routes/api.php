@@ -52,3 +52,66 @@ use App\Http\Controllers\ProfilController;
 
 Route::get('/profil', [ProfilController::class, 'getProfil']);
 Route::put('/profil/update', [ProfilController::class, 'updateProfil']);
+use App\Http\Controllers\NotificationController;
+
+Route::get('/patients', [NotificationController::class, 'index']); // Nouvelle route API
+Route::post('/notifications', [NotificationController::class, 'store'])->name('notifications.store');
+use App\Http\Controllers\FichePatientController;
+
+// API : Retourner les données JSON pour la modification
+
+
+Route::get('/fiche-patient/{id}/edit', [FichePatientController::class, 'edit'])->name('fiche-patient.edit');
+Route::put('/fiche-patient/{id}', [FichePatientController::class, 'update'])->name('fiche-patient.update');
+Route::get('/fiche-patient', [FichePatientController::class, 'index']);
+Route::middleware('auth:sanctum')->group(function () {
+    Route::post('/fiche-patient', [FichePatientController::class, 'store']);
+    Route::get('/fiche-patient', [FichePatientController::class, 'index']);
+});
+Route::get('/fiche-patient', [FichePatientController::class, 'index']);
+Route::get('/fiche-patient/{id}', [FichePatientController::class, 'show']);
+
+Route::get('/fiche-patient/{id}/pdf', [FichePatientController::class, 'generatePDF']);
+Route::get('/patients', [RegisteredUserController::class, 'getPatients']);
+Route::apiResource('fiche-patient', FichePatientController::class);
+use App\Http\Controllers\PlanningJourController;
+
+
+Route::get('/plannings', [PlanningJourController::class, 'index']);
+Route::post('/plannings', [PlanningJourController::class, 'store']);
+use App\Http\Controllers\RendezVousController;
+// Route pour récupérer la liste des médecins
+Route::get('/medecins', [RegisteredUserController::class, 'getmedecin']);
+
+
+
+// Route pour créer un rendez-vous via API
+Route::middleware('auth:sanctum')->group(function () {
+    Route::post('/reserver', [RendezVousController::class, 'store']);
+});
+Route::middleware('auth:sanctum')->get('/mes-rendezvous', [RendezVousController::class, 'mesRendezvous']);
+
+
+Route::get('/plannings', [PlanningController::class, 'index']);
+Route::get('planning_jours', [RendezVousController::class, 'getPlanningJours']);
+
+Route::post('/rendezvous/reserver', [RendezVousController::class, 'reserver']);
+Route::get('/plannings', [RendezVousController::class, 'getDisponibilites']);
+Route::post('/reserver', [RendezVousController::class, 'reserver']);
+// Dans routes/api.php
+Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
+    return $request->user();
+});
+Route::middleware('auth')->get('/mes-rendezvous', function () {
+    return auth()->user()->rendezvous;
+});
+Route::post('/rendez-vous', [RendezVousController::class, 'store']);
+
+Route::post('/rendez-vous/reserver', [RendezVousController::class, 'reserver']);
+
+Route::delete('/plannings/{id}', [PlanningJourController::class, 'destroy']);
+
+
+
+Route::get('/tous-rendezvous', [RendezVousController::class, 'index']);
+

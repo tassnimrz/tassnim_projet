@@ -46,7 +46,23 @@ class FichePatient extends Model
     // Relation avec DossierMedical (Un patient a un seul dossier médical)
     public function dossierMedical()
     {
-       // return $this->hasOne(DossierMedical::class);
-       return $this->hasOne(DossierMedical::class, 'fiche_patient_id');
+        return $this->hasOne(DossierMedical::class, 'fiche_patient_id');
     }
+    
+    // Dans le modèle FichePatient
+public function dossier()
+{
+    return $this->hasOne(Dossier::class);
+}
+
+public function allergies()
+{
+    return $this->hasMany(Allergie::class); // ou belongsToMany si c'est une relation plusieurs à plusieurs
+}
+
+public function traitements()
+{
+    return $this->hasMany(Traitement::class);
+}
+
 }

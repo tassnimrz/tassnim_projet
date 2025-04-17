@@ -1,194 +1,175 @@
 <?php
+
 namespace App\Http\Controllers;
 
 use App\Models\RendezVous;
-use App\Models\Disponibilite;
-use App\Models\User;
-use App\Models\DossierMedical;
-use App\Events\RendezVousUpdated;
+use App\Models\PlanningJour;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Notification;
-use App\Notifications\RendezVousNotification;
+use Illuminate\Support\Facades\Auth;
 
 class RendezVousController extends Controller
 {
-    // Méthode pour afficher tous les rendez-vous
     public function index()
     {
-        $rendezVous = RendezVous::all();
-        return view('rendezvous.index', compact('rendezVous'));
+        $rendezVous = RendezVous::with('patient', 'medecin', 'planningJour')->get();
+        $planningJours = PlanningJour::all();
+
+        foreach ($planningJours as $planningJour) {
+            $planningJour->rendezvous_confirmes = RendezVous::where('planning_jour_id', $planningJour->id)
+                ->where('statut', 'confirmé')
+                ->count();
+        }
+
+        return view('rendezvous.index', compact('rendezVous', 'planningJours'));
     }
 
-    // Méthode pour afficher les détails d'un rendez-vous spécifique
-    public function show($id)
+    public function store(Request $request)
     {
-        $rendezVous = RendezVous::findOrFail($id);
-        return view('rendezvous.show', compact('rendezVous'));
-    }
-
-    // Méthode pour afficher le formulaire de création d'un rendez-vous
-    public function create()
-    {
-        $disponibilites = Disponibilite::where('statut', 'disponible')->get();
-        $patients = User::role('patient')->get(); // Sélectionner uniquement les patients
-        return view('rendezvous.create', compact('disponibilites', 'patients'));
-    }
-
-    // Méthode pour enregistrer un rendez-vous
-    // Méthode pour enregistrer un rendez-vous
-public function store(Request $request)
-{
-    // Validation des données
-    $request->validate([
-        'user_id' => 'required|exists:users,id',
-        'dossier_medical_id' => 'required|exists:dossier_medicals,id',
-        'date_rendez_vous' => 'required|date',
-        'motif' => 'required|string',
-        'type' => 'required|string',
-        'disponibilite_id' => 'required|exists:disponibilites,id',
-    ]);
-
-    // Vérifier la disponibilité du créneau
-    $disponibilite = Disponibilite::findOrFail($request->disponibilite_id);
-
-    // Si le créneau est déjà occupé, on renvoie un message d'erreur
-    if ($disponibilite->statut == 'occupé') {
-        return redirect()->back()->with('error', 'Le créneau est déjà occupé.');
-    }
-
-    // Vérifier que l'utilisateur est bien un patient
-    $user = User::findOrFail($request->user_id);
-    if (!$user->hasRole('patient')) {
-        return redirect()->back()->with('error', 'L\'utilisateur n\'est pas un patient.');
-    }
-
-    // Créer un nouveau rendez-vous
-    $rendezVous = new RendezVous([
-        'user_id' => $request->user_id,
-        'dossier_medical_id' => $request->dossier_medical_id,
-        'date_rendez_vous' => $request->date_rendez_vous,
-        'statut' => 'en attente', // Statut initial
-        'motif' => $request->motif,
-        'type' => $request->type,
-        'disponibilite_id' => $disponibilite->id,
-    ]);
-    $rendezVous->save();
-
-    // Marquer le créneau comme occupé
-    $disponibilite->statut = 'occupé';
-    $disponibilite->save();
-
-    // Diffuser l'événement de mise à jour
-    broadcast(new RendezVousUpdated($rendezVous));
-
-    // Envoyer des notifications au patient, médecin et secrétaire
-    Notification::send(User::all(), new RendezVousNotification($rendezVous));
-  // Notification::send(User::all(), new RendezVousNotification($notificationData));
-
-    // Retourner une réponse ou rediriger
-    return redirect()->route('rendezvous.index')->with('success', 'Rendez-vous pris avec succès!');
-}
-
-    // Méthode pour afficher le formulaire d'édition d'un rendez-vous
-    public function edit($id)
-    {
-        $rendezVous = RendezVous::findOrFail($id);
-        $disponibilites = Disponibilite::where('statut', 'disponible')->get();
-        $patients = User::role('patient')->get(); // Sélectionner uniquement les patients
-        return view('rendezvous.edit', compact('rendezVous', 'disponibilites', 'patients'));
-    }
-
-    // Méthode pour mettre à jour un rendez-vous
-    public function update(Request $request, $id)
-    {
-        $rendezVous = RendezVous::findOrFail($id);
-
-        $rendezVous->update([
-            'date_rendez_vous' => $request->date_rendez_vous,
-            'statut' => $request->statut,
-            'motif' => $request->motif,
-            'disponibilite_id' => $request->disponibilite_id,
+        $validated = $request->validate([
+            'patient_id' => 'required|exists:users,id',
+            'planning_jour_id' => 'required|exists:planning_jours,id',
+            'medecin_id' => 'required|exists:users,id',
+            'position' => 'required|integer',
+            'statut' => 'required|string',
+            'priorite' => 'required|integer',
         ]);
 
-        // Diffuser l'événement de mise à jour
-        broadcast(new RendezVousUpdated($rendezVous));
+        $planningJour = PlanningJour::find($validated['planning_jour_id']);
+        $nombreConfirmes = RendezVous::where('planning_jour_id', $validated['planning_jour_id'])
+            ->where('statut', 'confirmé')
+            ->count();
 
-        // Envoyer une notification de mise à jour
-        Notification::send(User::all(), new RendezVousNotification($rendezVous));
+        if ($nombreConfirmes >= $planningJour->max_patients) {
+            return response()->json(['message' => 'Aucune place disponible pour ce créneau.'], 400);
+        }
 
-        return redirect()->route('rendezvous.index')->with('success', 'Rendez-vous mis à jour.');
+        $rendezVous = RendezVous::create($validated);
+
+        return response()->json(['message' => 'Rendez-vous pris avec succès.', 'rendezVous' => $rendezVous], 201);
     }
 
-    // Méthode pour annuler un rendez-vous
-    public function cancel($id)
+    public function getDisponibilites()
     {
-        $rendezVous = RendezVous::findOrFail($id);
-        $rendezVous->statut = 'annulé';
-        $rendezVous->save();
+        $plannings = PlanningJour::with(['medecin', 'rendezVous'])
+            ->get()
+            ->map(function ($planning) {
+                $nb_confirmes = $planning->rendezVous->where('statut', 'confirmé')->count();
+                $nb_attente = $planning->rendezVous->where('statut', 'attente')->count();
 
-        // Marquer le créneau comme disponible
-        $disponibilite = $rendezVous->disponibilite;
-        $disponibilite->statut = 'disponible';
-        $disponibilite->save();
+                return [
+                    'id' => $planning->id,
+                    'date' => $planning->date,
+                    'heure_debut' => $planning->heure_debut,
+                    'heure_fin' => $planning->heure_fin,
+                    'medecin' => [
+                        'id' => $planning->medecin->id ?? null,
+                        'name' => $planning->medecin->name ?? 'Inconnu',
+                    ],
+                    'nb_confirmes' => $nb_confirmes,
+                    'nb_attente' => $nb_attente,
+                    'nombre_max_patients' => $planning->max_patients,
+                    'nombre_max_attente' => $planning->max_attente,
+                ];
+            });
 
-        // Diffuser l'événement d'annulation
-        broadcast(new RendezVousUpdated($rendezVous));
-
-        // Envoyer une notification d'annulation
-        Notification::send(User::all(), new RendezVousNotification($rendezVous));
-
-        return redirect()->route('rendezvous.index')->with('success', 'Rendez-vous annulé.');
+        return response()->json($plannings);
     }
 
-    // Méthode pour confirmer un rendez-vous
-    public function confirm($id)
+    public function reserver(Request $request)
     {
-        $rendezVous = RendezVous::findOrFail($id);
-        $rendezVous->statut = 'confirmé';
-        $rendezVous->save();
+        $user = Auth::user();
 
-        // Diffuser l'événement de confirmation
-        broadcast(new RendezVousUpdated($rendezVous));
+        if (!$user) {
+            return response()->json(['message' => 'Non authentifié'], 401);
+        }
 
-        // Envoyer une notification de confirmation
-        Notification::send(User::all(), new RendezVousNotification($rendezVous));
+        // Récupérer le planning demandé
+        $planning = PlanningJour::find($request->planning_jour_id);
+        if (!$planning) {
+            return response()->json(['message' => 'Créneau non trouvé.'], 404);
+        }
 
-        return redirect()->route('rendezvous.index')->with('success', 'Rendez-vous confirmé.');
-    }
+        // Vérifier si l'utilisateur a déjà un rendez-vous le même jour
+        $rendezVousMemeJour = RendezVous::where('patient_id', $user->id)
+            ->whereHas('planningJour', function ($query) use ($planning) {
+                $query->whereDate('date', $planning->date);
+            })
+            ->exists();
 
-    // Méthode pour créer un créneau de disponibilité
-    public function createDisponibilite(Request $request)
-    {
-        $disponibilite = new Disponibilite([
-            'medecin_id' => $request->medecin_id,
-            'date' => $request->date,
-            'heure_debut' => $request->heure_debut,
-            'heure_fin' => $request->heure_fin,
-            'statut' => 'disponible', // Statut initial
+        if ($rendezVousMemeJour) {
+            return response()->json([
+                'message' => 'Vous avez déjà un rendez-vous pour ce jour-là.'
+            ], 409);
+        }
+
+        // Vérifier les places disponibles
+        $confirmes = RendezVous::where('planning_jour_id', $planning->id)
+            ->where('statut', 'confirmé')->count();
+
+        $attentes = RendezVous::where('planning_jour_id', $planning->id)
+            ->where('statut', 'attente')->count();
+
+        if ($confirmes < $planning->nombre_max_patients) {
+            $statut = 'confirmé';
+            $position = $confirmes + 1;
+        } elseif ($attentes < $planning->nombre_max_attente) {
+            $statut = 'attente';
+            $position = $confirmes + $attentes + 1;
+        } else {
+            return response()->json([
+                'message' => 'Désolé, ce créneau est complet (confirmés + attente).'
+            ], 409);
+        }
+
+        // Enregistrement du rendez-vous
+        $rendezVous = RendezVous::create([
+            'patient_id' => $user->id,
+            'medecin_id' => $planning->medecin_id,
+            'planning_jour_id' => $planning->id,
+            'statut' => $statut,
+            'position' => $position,
+            'priorite' => rand(1, 5),
         ]);
-        $disponibilite->save();
 
-        return redirect()->route('disponibilites.index')->with('success', 'Créneau créé avec succès.');
+        return response()->json([
+            'message' => "Votre rendez-vous a été $statut avec succès.",
+            'rendezVous' => $rendezVous
+        ]);
     }
 
-    // Méthode pour afficher les créneaux de disponibilité
-    public function showDisponibilites()
+    public function consulterRendezVous()
     {
-        $disponibilites = Disponibilite::where('statut', 'disponible')->get();
-        return view('disponibilites.index', compact('disponibilites'));
+        $user = Auth::user();
+
+        if (!$user) {
+            return response()->json(['message' => 'Non authentifié'], 401);
+        }
+
+        $rendezVous = RendezVous::with(['planningJour', 'medecin'])
+            ->where('patient_id', $user->id)
+            ->get();
+
+        return response()->json($rendezVous);
     }
 
-    // Méthode pour supprimer un rendez-vous
-    public function destroy($id)
+    public function mesRendezVous(Request $request)
     {
-        $rendezVous = RendezVous::findOrFail($id);
-        $rendezVous->delete();
+        $user = $request->user();
 
-        // Marquer le créneau comme disponible
-        $disponibilite = $rendezVous->disponibilite;
-        $disponibilite->statut = 'disponible';
-        $disponibilite->save();
+        if (!$user) {
+            return response()->json(['message' => 'Non authentifié'], 401);
+        }
 
-        return redirect()->route('rendezvous.index')->with('success', 'Rendez-vous supprimé.');
+        $rendezVous = RendezVous::with(['planningJour', 'medecin'])
+            ->where('patient_id', $user->id)
+            ->get();
+
+        return response()->json($rendezVous);
     }
-}
+    public function tousRendezVous()
+    {
+        $rendezVous = RendezVous::with(['planningJour', 'medecin'])->get();
+    
+        return response()->json($rendezVous);
+    }
+}    

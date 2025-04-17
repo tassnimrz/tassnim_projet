@@ -1,198 +1,332 @@
-import React, { useState, useEffect } from "react";
-import ReactDOM from "react-dom/client";
-import { Container, Row, Col, Navbar, Nav, Form, Button, Dropdown, Toast } from "react-bootstrap";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faSearch, faBell, faCog, faUser, faHome, faClipboardList, faCalendarAlt, faFolderOpen, faStethoscope, faFilePrescription } from "@fortawesome/free-solid-svg-icons";
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
-import "bootstrap/dist/css/bootstrap.min.css";
-import "./styles.css"; // Inclure les styles ici
+import React, { useState, useEffect } from 'react';
+import { createRoot } from 'react-dom/client';
+import {
+  BrowserRouter,
+  NavLink,
+  Routes,
+  Route,
+  useLocation,
+  useNavigate,
+} from 'react-router-dom';
+import axios from 'axios';
+import 'bootstrap/dist/css/bootstrap.min.css';
+import {
+  HouseDoor, CalendarCheck, People, Bell, PersonCircle,
+  FileEarmarkMedical, Search, List
+} from 'react-bootstrap-icons';
 
-// Import pour les graphiques
-import { Line } from 'react-chartjs-2';
-import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend } from 'chart.js';
-import FullCalendar from '@fullcalendar/react';
-import dayGridPlugin from '@fullcalendar/daygrid';
-
-ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend);
-
-// Sidebar
-const Sidebar = () => {
+// --- Sidebar ---
+function Sidebar({ isCollapsed }) {
   return (
-    <Nav className="flex-column sidebar shadow-sm p-3">
-      <Nav.Link className="nav-item" onClick={() => window.location.href = "/"} >
-        <FontAwesomeIcon icon={faHome} className="me-2" />Accueil
-      </Nav.Link>
-      <Nav.Link className="nav-item" onClick={() => window.location.href = "/tableau-de-bord"} >
-        <FontAwesomeIcon icon={faClipboardList} className="me-2" />Tableau de bord
-      </Nav.Link>
-      <Nav.Link className="nav-item" onClick={() => window.location.href = "/rendez-vous"} >
-        <FontAwesomeIcon icon={faCalendarAlt} className="me-2" />Rendez-vous
-      </Nav.Link>
-      <Nav.Link className="nav-item" onClick={() => window.location.href = "/fiche-patient"} >
-        <FontAwesomeIcon icon={faFolderOpen} className="me-2" />Liste des Fiches Patients
-      </Nav.Link>
-      <Nav.Link className="nav-item" onClick={() => window.location.href = "/fiche-patient/create"} >
-        <FontAwesomeIcon icon={faFolderOpen} className="me-2" />Créer une Fiche Patient
-      </Nav.Link>
-      <Nav.Link className="nav-item" onClick={() => window.location.href = "/dossier-medical"} >
-        <FontAwesomeIcon icon={faFolderOpen} className="me-2" />Liste des Dossiers Médicaux
-      </Nav.Link>
-      <Nav.Link className="nav-item" onClick={() => window.location.href = "/consultations"} >
-        <FontAwesomeIcon icon={faStethoscope} className="me-2" />Consultations
-      </Nav.Link>
-      <Nav.Link className="nav-item" onClick={() => window.location.href = "/prescriptions"} >
-        <FontAwesomeIcon icon={faFilePrescription} className="me-2" />Prescriptions
-      </Nav.Link>
-    </Nav>
-  );
-};
-
-// Header
-const Header = () => (
-  <Navbar expand="lg" className="navbar-custom">
-    <Navbar.Brand href="#" className="fs-4 text-light">E-Santé 🩺🤍</Navbar.Brand>
-    <Form className="search-bar">
-      <Form.Control type="search" placeholder="Rechercher..." />
-      <Button variant="light">
-        <FontAwesomeIcon icon={faSearch} />
-      </Button>
-    </Form>
-    <div className="header-icons">
-      <FontAwesomeIcon icon={faBell} className="icon" />
-      <FontAwesomeIcon icon={faCog} className="icon" />
-      <Dropdown>
-        <Dropdown.Toggle variant="light">
-          <FontAwesomeIcon icon={faUser} className="me-2" /> Secrétaire
-        </Dropdown.Toggle>
-        <Dropdown.Menu align="end">
-          <Dropdown.Item href="#">👤 Profil</Dropdown.Item>
-          <Dropdown.Item href="#">⚙️ Paramètres</Dropdown.Item>
-          <Dropdown.Divider />
-          <Dropdown.Item href="#" className="text-danger">🚪 Déconnexion</Dropdown.Item>
-        </Dropdown.Menu>
-      </Dropdown>
+    <div className={`sidebar shadow-sm ${isCollapsed ? 'collapsed' : ''}`}>
+      <h3 className="text-white fw-bold text-center mb-4">
+        {isCollapsed ? '🩺' : 'AI-MedCare 🩺🤍'}
+      </h3>
+      <ul className="nav flex-column">
+        <li className="nav-item mb-2">
+          <NavLink to="/" className="nav-link-custom" end>
+            <HouseDoor className="me-2" /> {!isCollapsed && 'Tableau de bord'}
+          </NavLink>
+        </li>
+        <li className="nav-item mb-2">
+          <NavLink to="/rdvs" className="nav-link-custom">
+            <CalendarCheck className="me-2" /> {!isCollapsed && 'Rendez-vous'}
+          </NavLink>
+        </li>
+        <li className="nav-item mb-2">
+          <NavLink to="/patients" className="nav-link-custom">
+            <People className="me-2" /> {!isCollapsed && 'Patients'}
+          </NavLink>
+        </li>
+        <li className="nav-item mb-2">
+          <NavLink to="/fiche-patient" className="nav-link-custom">
+            <FileEarmarkMedical className="me-2" /> {!isCollapsed && 'Fiche patient'}
+          </NavLink>
+        </li>
+        <li className="nav-item">
+          <NavLink to="/notifications" className="nav-link-custom">
+            <Bell className="me-2" /> {!isCollapsed && 'Notifications'}
+          </NavLink>
+        </li>
+      </ul>
     </div>
-  </Navbar>
-);
+  );
+}
 
-// Graphique d'activité
-const DashboardGraph = () => {
-  const data = {
-    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
-    datasets: [
-      {
-        label: 'Rendez-vous',
-        data: [65, 59, 80, 81, 56, 55],
-        borderColor: 'rgba(75, 192, 192, 1)',
-        fill: false,
-      },
-    ],
+// --- Header ---
+function Header({ onToggleSidebar }) {
+  const [langue, setLangue] = useState('fr');
+  const [searchText, setSearchText] = useState('');
+
+  const handleSearch = (e) => {
+    setSearchText(e.target.value);
+    console.log("Recherche :", e.target.value);
   };
 
-  return <Line data={data} />;
-};
+  return (
+    <div className="header shadow-sm px-4 py-3 d-flex justify-content-between align-items-center">
+      <div className="d-flex align-items-center gap-3">
+        <button className="btn btn-outline-primary btn-sm me-2" onClick={onToggleSidebar}>
+          <List />
+        </button>
 
-// Calendrier des rendez-vous
-const Calendar = () => (
-  <FullCalendar
-    plugins={[dayGridPlugin]}
-    initialView="dayGridMonth"
-    events={[
-      { title: 'Rendez-vous avec Mr. X', date: '2025-03-05' },
-      { title: 'Consultation Mme. Y', date: '2025-03-07' },
-    ]}
-  />
-);
+        <select
+          className="form-select form-select-sm"
+          value={langue}
+          onChange={(e) => setLangue(e.target.value)}
+          style={{ width: '100px' }}
+        >
+          <option value="fr">🇫🇷 Français</option>
+          <option value="en">🇬🇧 English</option>
+        </select>
 
-// Notifications et rappels
-const Notifications = () => (
-  <div className="notifications">
-    <h6>Rappels</h6>
-    <ul>
-      <li>Rendez-vous avec le Dr. X à 14h00</li>
-      <li>Confirmer le rendez-vous de Mme. Y</li>
-      <li>Envoyer les prescriptions du jour</li>
-    </ul>
-  </div>
-);
+        <div className="input-group input-group-sm search-bar">
+          <span className="input-group-text">
+            <Search />
+          </span>
+          <input
+            type="text"
+            className="form-control"
+            placeholder="Rechercher..."
+            value={searchText}
+            onChange={handleSearch}
+          />
+        </div>
+      </div>
 
-// Dashboard Secrétaire
-const SecretaireDashboard = () => {
-  const [userName, setUserName] = useState("Sarra");
-  const [showToast, setShowToast] = useState(true);
+      <div className="d-flex align-items-center">
+        <PersonCircle size={32} className="me-2 text-primary" />
+        <span className="fw-bold">Mme Dupont</span>
+      </div>
+    </div>
+  );
+}
+
+// --- Dashboard ---
+function DashboardSecretary() {
+  return (
+    <div className="row g-4">
+      <div className="col-md-4">
+        <div className="card dashboard-card">
+          <div className="card-body">
+            <h6>Rendez-vous aujourd'hui</h6>
+            <h3>8</h3>
+          </div>
+        </div>
+      </div>
+      <div className="col-md-4">
+        <div className="card dashboard-card">
+          <div className="card-body">
+            <h6>Patients enregistrés</h6>
+            <h3>152</h3>
+          </div>
+        </div>
+      </div>
+      <div className="col-md-4">
+        <div className="card dashboard-card">
+          <div className="card-body">
+            <h6>Notifications envoyées</h6>
+            <h3>45</h3>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// --- Fiche Patient ---
+function FichePatient() {
+  return (
+    <div className="card p-3 shadow-sm">
+      <h5 className="mb-3">Fiche Patient</h5>
+      <iframe
+        src="http://127.0.0.1:8000/fiche-patient"
+        style={{
+          width: '100%',
+          height: '80vh',
+          border: 'none',
+          borderRadius: '1rem',
+          backgroundColor: 'white'
+        }}
+        title="Fiche Patient"
+      ></iframe>
+    </div>
+  );
+}
+
+// --- Patients List ---
+function PatientsList() {
+  const [patients, setPatients] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Fermer le Toast après 3 secondes
-    setTimeout(() => setShowToast(false), 3000);
+    axios.get('http://localhost:8000/api/patients')
+      .then(response => {
+        setPatients(response.data);
+        setLoading(false);
+      })
+      .catch(error => {
+        console.error("Erreur lors de la récupération des patients :", error);
+        setLoading(false);
+      });
   }, []);
 
   return (
-    <Container fluid>
-      <Row>
-        <Col md={2} className="sidebar-container">
-          <Sidebar />
-        </Col>
-        <Col md={10} className="content-container">
-          <h5 className="welcome-message">
-            {userName ? `Bienvenue sur votre espace secrétaire, ${userName}` : "Bienvenue sur votre espace secrétaire"}
-          </h5>
-
-          {/* Affichage du Toast */}
-          {showToast && (
-            <Toast className="notification-toast">
-              <Toast.Body>
-                <img src="https://plus.unsplash.com/premium_photo-1681494639261-7908ef9d2257?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1yZWxhdGVkfDE2fHx8ZW58MHx8fHx8" alt="Secrétaire" className="toast-img" />
-                <div>
-                  <strong>Bonjour Secrétaire Sarra</strong>
-                  <p>Bienvenue dans votre compte.</p>
-                </div>
-              </Toast.Body>
-            </Toast>
-          )}
-
-          <Row>
-            <Col md={6}>
-              <DashboardGraph />
-            </Col>
-            <Col md={6}>
-              <Calendar />
-            </Col>
-          </Row>
-
-          <Row>
-            <Col md={6}>
-              <Notifications />
-            </Col>
-            <Col md={6}>
-              <h6>Statistiques du Cabinet</h6>
-              <div className="statistiques">
-                {/* Graphiques ou autres informations statistiques */}
-              </div>
-            </Col>
-          </Row>
-        </Col>
-      </Row>
-    </Container>
+    <div className="card p-3 shadow-sm">
+      <h5>Liste des Patients</h5>
+      {loading ? (
+        <p>Chargement en cours...</p>
+      ) : (
+        <div className="table-responsive">
+          <table className="table table-striped table-hover mt-3">
+            <thead className="table-primary">
+              <tr>
+                <th>Nom</th>
+                <th>Email</th>
+                <th>Téléphone</th>
+                <th>Adresse</th>
+                <th>Date de naissance</th>
+                <th>Inscrit le</th>
+              </tr>
+            </thead>
+            <tbody>
+              {patients.map((patient) => (
+                <tr key={patient.id}>
+                  <td>{patient.name}</td>
+                  <td>{patient.email}</td>
+                  <td>{patient.tel}</td>
+                  <td>{patient.adresse}</td>
+                  <td>{patient.date_naissance}</td>
+                  <td>{new Date(patient.created_at).toLocaleDateString()}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
   );
-};
+}
 
-// App principal
-const App = () => (
-  <Router>
-    <Header />
-    <SecretaireDashboard />
-    <Routes>
-      <Route path="/" element={<h2>Accueil</h2>} />
-      <Route path="/tableau-de-bord" element={<h2>Tableau de bord</h2>} />
-      <Route path="/rendez-vous" element={<h2>Rendez-vous</h2>} />
-      <Route path="/fiche-patient" element={<h2>Liste des Fiches Patients</h2>} />
-      <Route path="/fiche-patient/create" element={<h2>Créer une Fiche Patient</h2>} />
-      <Route path="/dossier-medical" element={<h2>Liste des Dossiers Médicaux</h2>} />
-      <Route path="/consultations" element={<h2>Consultations</h2>} />
-      <Route path="/prescriptions" element={<h2>Prescriptions</h2>} />
-    </Routes>
-  </Router>
+// --- Placeholder ---
+function Placeholder({ title }) {
+  return (
+    <div className="card p-3 shadow-sm">
+      <h5>{title}</h5>
+      <p>Contenu à venir pour {title}...</p>
+    </div>
+  );
+}
+
+// --- Layout Principal ---
+function Layout() {
+  const location = useLocation();
+  const [isCollapsed, setIsCollapsed] = useState(false);
+
+  useEffect(() => {
+    const path = location.pathname;
+    if (path === "/fiche-patient" || path === "/patients") {
+      setIsCollapsed(true);
+    } else {
+      setIsCollapsed(false);
+    }
+  }, [location]);
+
+  const toggleSidebar = () => {
+    setIsCollapsed(prev => !prev);
+  };
+
+  return (
+    <div className="d-flex">
+      <Sidebar isCollapsed={isCollapsed} />
+      <div className="flex-grow-1">
+        <Header onToggleSidebar={toggleSidebar} />
+        <div className="p-4" style={{ backgroundColor: '#f4f9fc', minHeight: '100vh' }}>
+          <Routes>
+            <Route path="/" element={<DashboardSecretary />} />
+            <Route path="/rdvs" element={<Placeholder title="Page des rendez-vous" />} />
+            <Route path="/patients" element={<PatientsList />} />
+            <Route path="/notifications" element={<Placeholder title="Notifications" />} />
+            <Route path="/fiche-patient" element={<FichePatient />} />
+          </Routes>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// --- Render ---
+const root = createRoot(document.getElementById('app'));
+root.render(
+  <React.StrictMode>
+    <BrowserRouter>
+      <Layout />
+    </BrowserRouter>
+  </React.StrictMode>
 );
 
-const root = ReactDOM.createRoot(document.getElementById("app"));
-root.render(<App />);
+// --- Styles CSS ---
+const style = document.createElement('style');
+style.textContent = `
+.sidebar {
+  width: 250px;
+  background: linear-gradient(180deg, #007bff, #0056b3);
+  color: white;
+  padding: 1.5rem;
+  min-height: 100vh;
+  transition: width 0.3s ease, padding 0.3s ease;
+}
+
+.sidebar.collapsed {
+  width: 80px;
+  padding: 1.5rem 0.5rem;
+  text-align: center;
+}
+
+.sidebar.collapsed .nav-link-custom {
+  justify-content: center;
+  text-align: center;
+}
+
+.nav-link-custom {
+  color: white;
+  font-weight: 500;
+  padding: 10px;
+  border-radius: 0.5rem;
+  text-decoration: none;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+}
+
+.nav-link-custom:hover,
+.nav-link-custom.active {
+  background-color: rgba(255, 255, 255, 0.2);
+  color: #fff;
+  transform: translateX(4px);
+}
+
+.header {
+  background-color: white;
+  border-bottom: 1px solid rgb(12, 70, 186);
+}
+
+.search-bar input:focus {
+  box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+  border-color: #007bff;
+}
+
+.dashboard-card {
+  border: none;
+  border-radius: 1rem;
+  box-shadow: 0 4px 10px rgba(0, 123, 255, 0.1);
+  background-color: white;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.dashboard-card:hover {
+  transform: scale(1.02);
+  box-shadow: 0 6px 14px rgba(0, 123, 255, 0.2);
+}
+`;
+document.head.appendChild(style);

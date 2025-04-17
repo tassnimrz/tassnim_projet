@@ -20,7 +20,6 @@ class UserController extends Controller
         $users = User::with('role')->get();
         return view('admin.index-user', compact('users'));
     }
-    
 
     /**
      * Afficher le formulaire de création d'utilisateur.

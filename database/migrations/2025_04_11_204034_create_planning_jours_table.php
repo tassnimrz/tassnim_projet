@@ -11,24 +11,24 @@ return new class extends Migration
      */
     public function up()
     {
-        Schema::create('rendez_vous', function (Blueprint $table) {
+        Schema::create('planning_jours', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('patient_id')->constrained('users')->onDelete('cascade');
             $table->foreignId('medecin_id')->constrained('users')->onDelete('cascade');
-            $table->foreignId('planning_jour_id')->constrained('planning_jours')->onDelete('cascade');
-            $table->string('statut');
-            $table->integer('position');
-            $table->integer('priorite');
+            $table->date('date');
+            $table->integer('nombre_max_patients');
+            $table->integer('nombre_max_attente');
+            $table->time('heure_debut');
+            $table->time('heure_fin');
             $table->timestamps();
         });
     }
-
+    
 
     /**
      * Reverse the migrations.
      */
     public function down(): void
     {
-        Schema::dropIfExists('rendez_vous');
+        Schema::dropIfExists('planning_jours');
     }
 };

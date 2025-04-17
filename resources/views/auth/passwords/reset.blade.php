@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Connexion</title>
+    <title>Réinitialisation du mot de passe</title>
     <style>
         /* Animation de la vidéo (zoom progressif) */
         @keyframes zoomVideo {
@@ -97,48 +97,41 @@
         </video>
     </div>
 
-    <!-- Formulaire avec animation -->
     <div class="form-container">
-        <x-auth-session-status class="mb-4" :status="session('status')" />
+        <h1>Réinitialiser votre mot de passe</h1>
 
-        <form method="POST" action="{{ route('login') }}">
+        <!-- Affichage des messages de session -->
+        @if (session('status'))
+            <p>{{ session('status') }}</p>
+        @endif
+
+        <!-- Affichage des erreurs de validation -->
+        @if ($errors->any())
+            <div class="error-message">
+                <ul>
+                    @foreach ($errors->all() as $error)
+                        <li>{{ $error }}</li>
+                    @endforeach
+                </ul>
+            </div>
+        @endif
+
+        <form action="{{ route('password.reset') }}" method="POST">
             @csrf
+            <label for="email">Email :</label>
+            <input type="email" name="email" value="{{ $email }}" required>
 
-            <!-- Email -->
-            <div>
-                <x-input-label for="email" :value="__('Email')" />
-                <x-text-input id="email" class="block mt-1 w-full" type="email" name="email" :value="old('email')" required autofocus autocomplete="username" />
-                <x-input-error :messages="$errors->get('email')" class="mt-2" />
-            </div>
+            <label for="verification_code">Code de réinitialisation :</label>
+            <input type="text" name="verification_code" required>
 
-            <!-- Mot de passe -->
-            <div class="mt-4">
-                <x-input-label for="password" :value="__('Password')" />
-                <x-text-input id="password" class="block mt-1 w-full" type="password" name="password" required autocomplete="current-password" />
-                <x-input-error :messages="$errors->get('password')" class="mt-2" />
-            </div>
+            <label for="password">Nouveau mot de passe :</label>
+            <input type="password" name="password" required>
 
-            <!-- Se souvenir de moi -->
-            <div class="block mt-4">
-                <label for="remember_me" class="inline-flex items-center">
-                    <input id="remember_me" type="checkbox" name="remember">
-                    <span class="text-sm text-gray-600">{{ __('Remember me') }}</span>
-                </label>
-            </div>
+            <label for="password_confirmation">Confirmer le mot de passe :</label>
+            <input type="password" name="password_confirmation" required>
 
-            <div class="flex items-center justify-end mt-4">
-                @if (Route::has('password.request'))
-                    <a class="underline text-sm text-gray-600" href="{{ route('password.request') }}">
-                        {{ __('Forgot your password?') }}
-                    </a>
-                @endif
-
-                <x-primary-button class="ml-3">
-                    {{ __('Log in') }}
-                </x-primary-button>
-            </div>
+            <button type="submit">Réinitialiser le mot de passe</button>
         </form>
     </div>
-
 </body>
 </html>

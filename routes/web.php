@@ -8,9 +8,42 @@ use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
 use App\Http\Controllers\UserController;
+use App\Http\Controllers\RendezVousController;
+
+
+Route::get('/voir-rendezvous', function () {
+    return view('voir');
+});
+
+ Route::get('/rendez-vous', function () {
+    return view('rendezvous.index');  // Retourne la vue Blade où tu charges le composant React
+})->name('rendezvous.index');
+
+// Autres routes Laravel pour la gestion des rendez-vous
+Route::get('/rendezvous', [RendezVousController::class, 'index']);
+
+Route::get('/rendezvous/create', [RendezVousController::class, 'create'])->name('rendezvous.create');
+Route::post('/rendezvous', [RendezVousController::class, 'store'])->name('rendezvous.store');
+     
 
 
 use App\Http\Controllers\Auth\RegisteredUserController;
+Route::get('/api/patients', [RegisteredUserController::class, 'getPatients']);
+Route::post('/register', [RegisteredUserController::class, 'store']);
+Route::post('/users/create', [RegisteredUserController::class, 'store']);
+
+Route::get('/users', [RegisteredUserController::class, 'index']); // Récupérer tous les utilisateurs
+Route::get('/users/show/{id}', [RegisteredUserController::class, 'show']); // Afficher un utilisateur
+Route::put('/users/update/{id}', [RegisteredUserController::class, 'update']); // Modifier un utilisateur
+Route::delete('/users/destroy/{id}', [RegisteredUserController::class, 'destroy']); // Supprimer un utilisateur
+Route::get('users/edit/{id}', [RegisteredUserController::class, 'edit']);
+
+
+Route::get('users/edit/{id}', [RegisteredUserController::class, 'edit']);
+Route::post('/verification/{user}', [RegisteredUserController::class, 'verifyCode'])->name('verification.verify');
+Route::get('/verification-form', [RegisteredUserController::class, 'showVerificationForm'])->name('verification.form');
+Route::post('/verify-code', [RegisteredUserController::class, 'verifyCode'])->name('verify.code');
+
 
 
 
@@ -22,6 +55,7 @@ Route::post('/login', [AuthController::class, 'handleLogin'])->name('login');
 
 
 Route::post('register', [RegisteredUserController::class, 'store']);
+
 
 Route::middleware(['auth'])->group(function () {
     // Dashboard Médecin
@@ -41,9 +75,24 @@ Route::middleware(['auth'])->group(function () {
 });
 
 
+use App\Http\Controllers\PlanningJourController;
+Route::get('/planning', function () {
+    return view('disponibilite');
+});
+Route::middleware(['auth'])->group(function () {
+    // Route pour supprimer un rendez-vous
+    Route::delete('/rendez-vous/{rendezVous}', [RendezVousController::class, 'destroy'])
+        ->name('rendez-vous.destroy');
+});
 
 use App\Http\Controllers\Auth\LoginController;
 
+// routes/web.php
+Route::middleware('web')->get('/api/test-session', function () {
+    return response()->json([
+        'user' => auth()->user(),
+    ]);
+});
 
 // Afficher le formulaire de connexion
 Route::get('/login', [LoginController::class, 'showLoginForm'])->name('login');
@@ -75,28 +124,33 @@ Route::middleware(['auth'])->group(function () {
 
 
 use App\Http\Controllers\FichePatientController;
-
-// Affichage de la liste des fiches patients
-Route::get('/fiche-patient', [FichePatientController::class, 'index'])->name('fiche-patient.index');
-
-// Affichage du formulaire pour créer une nouvelle fiche patient
-Route::get('/fiche-patient/create', [FichePatientController::class, 'create'])->name('fiche-patient.create');
-
-// Enregistrement de la nouvelle fiche patient
-Route::post('/fiche-patient', [FichePatientController::class, 'store'])->name('fiche-patient.store');
-
-// Affichage des détails d'une fiche patient
-Route::get('/fiche-patient/{id}', [FichePatientController::class, 'show'])->name('fiche-patient.show');
-
-// Affichage du formulaire pour éditer une fiche patient
 Route::get('/fiche-patient/{id}/edit', [FichePatientController::class, 'edit'])->name('fiche-patient.edit');
-
-// Mise à jour d'une fiche patient
 Route::put('/fiche-patient/{id}', [FichePatientController::class, 'update'])->name('fiche-patient.update');
+// Routes API pour les opérations CRUD
+Route::prefix('api')->group(function () {
+    Route::get('/fiche-patient', [FichePatientController::class, 'index']);
+    Route::post('/fiche-patient', [FichePatientController::class, 'store']);
+ 
+    Route::put('/fiche-patient/{id}', [FichePatientController::class, 'update']);
 
-// Suppression d'une fiche patient
-Route::delete('/fiche-patient/{id}', [FichePatientController::class, 'destroy'])->name('fiche-patient.destroy');
+   // Ajoutez ces routes
+Route::get('/fiche-patients', [FichePatientController::class, 'index'])->name('fiche-patients.index');
+Route::get('/fiche-patients/{id}', [FichePatientController::class, 'show'])->name('fiche-patients.show'); // Route show avec paramètre
+Route::get('/fiche-patient/{id}/pdf', [FichePatientController::class, 'generatePDF']);
+});
 
+
+// Route pour la création
+Route::get('/fiche-patient/create', [FichePatientController::class, 'create']);
+
+
+Route::get('/fiche-patient', [FichePatientController::class, 'index'])->where('any', '.*');
+
+// routes/api.php
+Route::prefix('api')->group(function () {
+    Route::apiResource('fiche-patients', FichePatientController::class);
+    Route::get('/fiche-patient/{id}/pdf', [FichePatientController::class, 'generatePDF']);
+});
 
 use App\Http\Controllers\DossierMedicalController;
 
@@ -131,19 +185,7 @@ Route::get('/', function () {
   // return view('fiche-patient.index');
   return view('menu');
  });
- use App\Http\Controllers\RendezVousController;
-
-
-
-     // Afficher la liste des rendez-vous
-     Route::get('/rendezvous', [RendezVousController::class, 'index'])->name('rendezvous.index');
-
-     // Afficher le formulaire de création d'un rendez-vous
-     Route::get('/rendezvous/create', [RendezVousController::class, 'create'])->name('rendezvous.create');
-
-     // Enregistrer un nouveau rendez-vous
-     Route::post('/rendezvous', [RendezVousController::class, 'store'])->name('rendezvous.store');
-
+ 
      use App\Http\Controllers\ConsultationController;
 
 
@@ -266,4 +308,25 @@ Route::get('/admin/dashboard', [AvisController::class, 'index'])->name('admin.da
 
 Route::get('/profil', function(){
     return view('profil');
+
+    
 });
+
+use App\Http\Controllers\Auth\ForgotPasswordController;
+Route::get('/mot-de-passe-oublie', [ForgotPasswordController::class, 'showLinkRequestForm'])->name('password.request');
+Route::post('/mot-de-passe-email', [ForgotPasswordController::class, 'sendResetLinkEmail'])->name('password.email');
+
+
+use App\Http\Controllers\Auth\ResetPasswordController;
+Route::get('/reinitialiser-mot-de-passe', [ResetPasswordController::class, 'showResetForm'])->name('password.reset');
+Route::post('/reinitialiser-mot-de-passe', [ResetPasswordController::class, 'reset'])->name('password.update');
+
+use App\Http\Controllers\NotificationController;
+
+Route::get('/notifications/create', [NotificationController::class, 'create'])->name('notifications.create');
+Route::post('/notifications', [NotificationController::class, 'store'])->name('notifications.store');
+// routes/web.php
+Route::get('/user', function () {
+    return auth()->user();
+});
+Route::post('/rendez-vous/reserver', [RendezVousController::class, 'reserver'])->name('rendez_vous.reserver');

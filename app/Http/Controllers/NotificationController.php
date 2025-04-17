@@ -1,38 +1,34 @@
 <?php
-
 namespace App\Http\Controllers;
 
-use App\Models\RendezVous;
 use App\Models\User;
-use App\Notifications\RendezVousNotification;
+use App\Models\Notification;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Notification;
+use App\Http\Controllers\Controller; 
 
 class NotificationController extends Controller
 {
-    // Méthode pour envoyer une notification à un utilisateur spécifique
-    public function sendRendezVousNotification($rendezVousId)
+    public function create()
     {
-        $rendezVous = RendezVous::findOrFail($rendezVousId);
-        $users = User::all(); // Vous pouvez filtrer les utilisateurs par rôle si nécessaire (par exemple, patients, médecins, etc.)
-
-        Notification::send($users, new RendezVousNotification($rendezVous));
-
-        return redirect()->route('rendezvous.index')->with('success', 'Notification envoyée avec succès.');
+        $patients = User::all(); // tu peux filtrer si tu veux que les patients
+        return view('notification', compact('patients'));
     }
 
-    // Méthode pour envoyer une notification personnalisée à un utilisateur
-    public function sendCustomNotification(Request $request)
+    public function store(Request $request)
     {
-        $user = User::findOrFail($request->user_id);
-        $notificationData = [
-            'title' => $request->title,
+        $request->validate([
+            'user_id' => 'required|exists:users,id',
+            'message' => 'required|string',
+        ]);
+
+        Notification::create([
+            'user_id' => $request->user_id,
+            'type' => 'rappel', // par exemple
             'message' => $request->message,
-        ];
+            'statut' => 'non lu',
+            'date_notification' => now(),
+        ]);
 
-        // Vous pouvez créer une notification personnalisée ici
-       // $user->notify(new RendezVousNotification($notificationData));
-
-        return redirect()->route('rendezvous.index')->with('success', 'Notification personnalisée envoyée.');
+        return redirect()->route('notifications.create')->with('success', 'Notification envoyée !');
     }
 }

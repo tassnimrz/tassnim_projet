@@ -1,5 +1,4 @@
 <?php
-
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -8,33 +7,23 @@ use Illuminate\Database\Eloquent\Model;
 class RendezVous extends Model
 {
     use HasFactory;
-
-    // Définir les champs que tu peux remplir en masse
+    protected $table = 'rendez_vous';
     protected $fillable = [
-        'user_id',
-        'dossier_medical_id',
-        'date_rendez_vous',
-        'statut',
-        'motif',
-        'type',
-        'disponibilite_id',
+        'patient_id', 'medecin_id', 'planning_jour_id', 'statut', 'position', 'priorite'
     ];
 
-    // Relation avec le modèle User (patient)
     public function patient()
     {
-        return $this->belongsTo(User::class, 'user_id');
+        return $this->belongsTo(User::class, 'patient_id');
     }
 
-    // Relation avec le modèle DossierMedical
-    public function dossierMedical()
+    public function medecin()
     {
-        return $this->belongsTo(DossierMedical::class, 'dossier_medical_id');
+        return $this->belongsTo(User::class, 'medecin_id');
     }
 
-    // Relation avec le modèle Disponibilite
-    public function disponibilite()
+    public function planningJour()
     {
-        return $this->belongsTo(Disponibilite::class, 'disponibilite_id');
+        return $this->belongsTo(PlanningJour::class, 'planning_jour_id');
     }
 }

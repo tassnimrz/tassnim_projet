@@ -1,620 +1,1520 @@
 import React, { useState, useEffect } from "react";
 import { 
-  Container, Row, Col, Navbar, Nav, Form, Button, Table, Dropdown, Card, Spinner, Alert 
+  BrowserRouter as Router, 
+  Routes, 
+  Route, 
+  Link,
+  useLocation,
+  Navigate
+} from "react-router-dom";
+import { 
+  Container, Row, Col, Navbar, Nav, Form, Button, Table, 
+  Dropdown, Card, Spinner, Alert, Badge, Stack, Modal 
 } from "react-bootstrap";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { 
-  faSearch, faUser, faCog, faBell, faSignOutAlt, faChartBar, 
-  faUserMd, faClipboardList, faEdit, faTrashAlt 
+  faSearch, faUser, faCog, faSignOutAlt, faChartBar, 
+  faComment, faThumbsUp, faThumbsDown, faEdit, faTrashAlt, faPlus,
+  faUserNurse, faUserInjured, faGlobe, faMoon, faSun,
+  faEnvelope, faPhone, faHome, faBirthdayCake, faClipboardList,
+  faUserMd, faUserShield, faUserSecret, faChartPie, faSyncAlt, faStar
 } from "@fortawesome/free-solid-svg-icons";
-import { Switch, FormControlLabel, Typography, Divider, Slider } from "@mui/material";
+import { Doughnut, Bar } from 'react-chartjs-2';
+import { Chart, ArcElement, Tooltip, Legend, BarElement, CategoryScale, LinearScale } from 'chart.js';
 import ReactDOM from "react-dom/client";
 import "bootstrap/dist/css/bootstrap.min.css";
 import axios from "axios";
+import { motion } from "framer-motion";
 
-const primaryColor = "#1e90ff";
-const secondaryColor = "#0056b3";
-const backgroundColor = "#f4f7fa";
-const gradientBackground = `linear-gradient(135deg, ${primaryColor}, ${secondaryColor})`;
+Chart.register(ArcElement, Tooltip, Legend, BarElement, CategoryScale, LinearScale);
+
+const themeConfig = {
+  light: {
+    primary: "#1e90ff",
+    secondary: "#0056b3",
+    background: "#f8f9fa",
+    text: "#2c3e50",
+    cardBackground: "rgba(255, 255, 255, 0.9)",
+    gradient: "linear-gradient(135deg, #1e90ff 0%, #0056b3 100%)"
+  },
+  dark: {
+    primary: "#00c2cb",
+    secondary: "#0a192f",
+    background: "#0a192f",
+    text: "#ccd6f6",
+    cardBackground: "rgba(10, 25, 47, 0.8)",
+    gradient: "linear-gradient(135deg, #0a192f 0%, #172a45 100%)",
+    backgroundImage: "url('https://img.freepik.com/photos-premium/forets-sombres-photo-gratuite-fond-hd_915071-137396.jpg')"
+  }
+};
 
 const translations = {
   fr: {
+    leaveBlank: "Laisser vide pour ne pas modifier",
     dashboard: "Tableau de bord",
     searchPlaceholder: "Rechercher...",
     profile: "Profil",
     settings: "Paramètres",
     logout: "Déconnexion",
     personnelManagement: "Gestion du Personnel",
-    reportsStatistics: "Rapports & Statistiques",
+    avisManagement: "Gestion des Avis",
+    reportsStatistics: "Analytique",
+    welcomeTitle: "Bienvenue Administrateur 👨⚕️",
+    welcomeText: "Plateforme de gestion médicale intelligente",
+    newUser: "Nouvel utilisateur",
+    newAvis: "Nouvel avis",
+    active: "Actif",
+    inactive: "Inactif",
+    role: "Rôle",
+    actions: "Actions",
+    stats: {
+      totalAvis: "Avis totaux",
+      totalPatients: "Patients totaux",
+      positifs: "Avis positifs",
+      negatifs: "Avis négatifs",
+      satisfaction: "Taux satisfaction",
+      appointments: "Rendez-vous",
+      staff: "Personnel"
+    },
+    roles: {
+      doctor: "Médecin",
+      secretary: "Secrétaire",
+      patient: "Patient",
+      admin: "Administrateur"
+    },
+    performanceAnalysis: "Analyse des Performances",
+    performanceSubtitle: "Suivez et optimisez les performances des consultations",
+    completedConsultations: "Consultations Terminées",
+    pendingConsultations: "Consultations En Attente",
+    consultationRate: "Taux de consultations",
+    consultationsByReason: "Consultations par motif",
+    refreshStats: "Rafraîchir les Statistiques",
+    completed: "Terminées",
+    pending: "En attente",
+    confirmDelete: "Confirmer la suppression",
+    deleteMessage: "Êtes-vous sûr de vouloir supprimer cet utilisateur ?",
+    cancel: "Annuler",
+    confirm: "Confirmer",
+    fullName: "Nom complet",
+    phone: "Téléphone",
+    birthDate: "Date de naissance",
+    address: "Adresse",
+    password: "Mot de passe",
+    passwordConfirmation: "Confirmation du mot de passe",
+    passwordsDontMatch: "Les mots de passe ne correspondent pas",
+    successUpdate: "Utilisateur mis à jour avec succès",
+    successCreate: "Utilisateur créé avec succès",
+    successDelete: "Utilisateur supprimé avec succès",
+    errorDelete: "Erreur lors de la suppression",
+    editUser: "Modifier l'utilisateur",
+    create: "Créer",
+    update: "Mettre à jour",
+    editProfile: "Modifier le profil",
+    save: "Enregistrer",
+    profileInfo: "Informations du profil",
+    updateSuccess: "Profil mis à jour avec succès !",
+    updateError: "Erreur lors de la mise à jour"
   },
   en: {
+    leaveBlank: "Leave blank to keep unchanged",
     dashboard: "Dashboard",
     searchPlaceholder: "Search...",
     profile: "Profile",
     settings: "Settings",
     logout: "Logout",
-    personnelManagement: "Personnel Management",
-    reportsStatistics: "Reports & Statistics",
-  },
+    personnelManagement: "Staff Management",
+    avisManagement: "Reviews Management",
+    reportsStatistics: "Analytics",
+    welcomeTitle: "Welcome Admin 👨⚕️",
+    welcomeText: "Smart Medical Management Platform",
+    newUser: "New user",
+    newAvis: "New review",
+    active: "Active",
+    inactive: "Inactive",
+    role: "Role",
+    actions: "Actions",
+    stats: {
+      totalAvis: "Total Reviews",
+      totalPatients: "Total Patients",
+      positifs: "Positive Reviews",
+      negatifs: "Negative Reviews",
+      satisfaction: "Satisfaction Rate",
+      appointments: "Appointments",
+      staff: "Staff"
+    },
+    roles: {
+      doctor: "Doctor",
+      secretary: "Secretary",
+      patient: "Patient",
+      admin: "Admin"
+    },
+    performanceAnalysis: "Performance Analysis",
+    performanceSubtitle: "Track and optimize consultation performance",
+    completedConsultations: "Completed Consultations",
+    pendingConsultations: "Pending Consultations",
+    consultationRate: "Consultation Rate",
+    consultationsByReason: "Consultations by Reason",
+    refreshStats: "Refresh Statistics",
+    completed: "Completed",
+    pending: "Pending",
+    confirmDelete: "Confirm deletion",
+    deleteMessage: "Are you sure you want to delete this user?",
+    cancel: "Cancel",
+    confirm: "Confirm",
+    fullName: "Full name",
+    phone: "Phone",
+    birthDate: "Birth date",
+    address: "Address",
+    password: "Password",
+    passwordConfirmation: "Confirm Password",
+    passwordsDontMatch: "Passwords do not match",
+    successUpdate: "User updated successfully",
+    successCreate: "User created successfully",
+    successDelete: "User deleted successfully",
+    errorDelete: "Error deleting user",
+    editUser: "Edit user",
+    create: "Create",
+    update: "Update",
+    editProfile: "Edit Profile",
+    save: "Save",
+    profileInfo: "Profile Information",
+    updateSuccess: "Profile updated successfully!",
+    updateError: "Error updating profile"
+  }
 };
 
-const App = () => {
-  const [language, setLanguage] = useState("fr");  // Langue par défaut en français
-  const [texts, setTexts] = useState(translations[language]);
+const DashboardStats = ({ stats, currentTheme, language }) => {
+  const [selectedStat, setSelectedStat] = useState(null);
 
-  // Mise à jour du texte lorsque la langue change
-  const handleLanguageChange = (event) => {
-    const selectedLanguage = event.target.value;
-    setLanguage(selectedLanguage);
-    setTexts(translations[selectedLanguage]);  // Met à jour les textes avec la langue sélectionnée
-  };
-
-  // Mise à jour du texte initial à la charge de la page
-  useEffect(() => {
-    setTexts(translations[language]);
-  }, [language]);
-
-  return (
-    <div
-      style={{ minHeight: "100vh", backgroundColor: "#f4f7fa", display: "flex" }}
-    >
-      {/* Sidebar */}
-      <Sidebar texts={texts} />  {/* Passer texts à Sidebar */}
-
-      {/* Contenu principal */}
-      <div style={{ flex: 1, marginLeft: "280px" }}>
-        <Navbar style={{ background: "#1e90ff" }} variant="dark" expand="lg">
-          <Container fluid>
-            <Navbar.Brand href="#">{texts.dashboard}</Navbar.Brand>
-            <Form className="d-flex ms-auto align-items-center">
-              <Form.Control type="search" placeholder={texts.searchPlaceholder} className="me-2" />
-              <Button variant="light" size="sm"><FontAwesomeIcon icon={faSearch} /></Button>
-            </Form>
-            <div className="d-flex align-items-center ms-3">
-              <FontAwesomeIcon icon={faBell} className="text-white mx-2" />
-              <FontAwesomeIcon icon={faCog} className="text-white mx-2" />
-              <Dropdown>
-                <Dropdown.Toggle variant="light" id="profileMenu" className="d-flex align-items-center">
-                  <FontAwesomeIcon icon={faUser} className="me-2" /> 👑 Admin
-                </Dropdown.Toggle>
-                <Dropdown.Menu align="end">
-                  <Dropdown.Item href="#profile">{texts.profile}</Dropdown.Item>
-                  <Dropdown.Item href="#settings">{texts.settings}</Dropdown.Item>
-                  <Dropdown.Divider />
-                  <Dropdown.Item href="#logout">{texts.logout}</Dropdown.Item>
-                </Dropdown.Menu>
-              </Dropdown>
-            </div>
-          </Container>
-        </Navbar>
-
-        <Container style={{ padding: "20px" }}>
-          <h1>{texts.dashboard}</h1>
-          <select onChange={handleLanguageChange} value={language} className="form-select w-auto">
-            <option value="fr">Français</option>
-            <option value="en">English</option>
-          </select>
-        </Container>
-      </div>
-    </div>
-  );
-};
-
-const Sidebar = ({ theme, toggleTheme, color, texts }) => {
-  // Valeur par défaut pour 'texts' si non définie
-  const safeTexts = texts || translations.fr;
-
-  return (
-    <div
-      className={`sidebar ${theme === "dark" ? "bg-dark" : ""} text-white shadow-lg`}
-      style={{
-        width: "280px",
-        height: "100vh",
-        position: "fixed",
-        top: 60,
-        left: 0,
-        backgroundColor: theme === "dark" ? "transparent" : primaryColor,
-        backgroundImage: theme === "dark" 
-          ? "url('https://img.freepik.com/photos-premium/forets-sombres-photo-gratuite-fond-hd_915071-137396.jpg?ga=GA1.1.2098590446.1713605495&semt=ais_hybrid')" 
-          : "none",
-        backgroundSize: "cover",
-        backgroundPosition: "center",
-        backdropFilter: theme === "dark" ? "blur(5px)" : "none",
-        transition: "all 0.3s ease",
-        padding: "20px",
-        display: "flex",
-        flexDirection: "column",
-        justifyContent: "space-between"
-      }}
-    >
-      <Nav className="flex-column gap-2">
-        <Nav.Link href="/admin-dashboard" className="text-white" style={{ backgroundColor: color }}>
-          📊 {safeTexts.dashboard} {/* Utilisation de safeTexts */}
-        </Nav.Link>
-        <Nav.Link href="/register" className="text-white" style={{ backgroundColor: color }}>
-          👥 {safeTexts.personnelManagement} {/* Utilisation de safeTexts */}
-        </Nav.Link>
-        <Nav.Link href="/reports" className="text-white" style={{ backgroundColor: color }}>
-          📋 {safeTexts.reportsStatistics} {/* Utilisation de safeTexts */}
-        </Nav.Link>
-      </Nav>
-
-      <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.5)', textAlign: 'center' }}>
-        Version 2.0.0 • E-Santé Dashboard
-      </Typography>
-    </div>
-  );
-};
-
-
-
-const Header = ({ theme, toggleTheme, onLogout }) => {
-  const [showSettings, setShowSettings] = useState(false);
-  const [color, setColor] = useState("#1e90ff"); // Couleur par défaut
-  const [language, setLanguage] = useState("fr"); // Valeur par défaut en français
-  const [texts, setTexts] = useState(translations[language]); // Initialisation des textes
-
-  useEffect(() => {
-    setTexts(translations[language]); // Met à jour les textes selon la langue sélectionnée
-  }, [language]); // Réexécute l'effet chaque fois que la langue change
-
-  const toggleSettings = () => {
-    setShowSettings(!showSettings);
-  };
-
-  const handleLanguageChange = (event) => {
-    setLanguage(event.target.value);
-  };
-
-  const handleSettingChange = () => {
-    setShowSettings(false); // Vous pouvez ajouter plus de logique ici si nécessaire
-  };
-
-  const buttonStyle = {
-    backgroundColor: color,
-    borderColor: color,
-    color: "#fff",
+  const getStatDetails = () => {
+    if (!stats) return null;
+    
+    const total = stats.totalAvis || 1;
+    switch(selectedStat) {
+      case 'totalAvis':
+        return `${translations[language].stats.totalAvis}: ${stats.totalAvis}`;
+      case 'positifs': 
+        return `${stats.totalPositifs} ${translations[language].stats.positifs} (${((stats.totalPositifs/total)*100).toFixed(1)}%)`;
+      case 'negatifs':
+        return `${stats.totalNegatifs} ${translations[language].stats.negatifs} (${((stats.totalNegatifs/total)*100).toFixed(1)}%)`;
+      case 'satisfaction':
+        return `${translations[language].stats.satisfaction} : ${stats.tauxSatisfaction}% (${stats.totalPositifs}/${stats.totalAvis})`;
+      default: return null;
+    }
   };
 
   return (
     <>
-      <Navbar
-        expand="lg"
-        style={{
-          zIndex: 1030,
-          position: "fixed",
-          top: 0,
-          width: "100vw",
-          background: theme === "dark" ? "#1c1c1c" : "#007bff",
-          padding: "10px 20px",
-        }}
-      >
-        <Navbar.Brand href="#" className="text-white fw-bold">
-          E-Santé 🩺🤍
-        </Navbar.Brand>
-        <Form className="d-flex ms-auto align-items-center">
-          <Form.Control
-            type="search"
-            placeholder={texts.searchPlaceholder}
-            className="me-2"
-            size="sm"
-            style={{ borderRadius: "40px", border: "1px solid #ccc" }}
-          />
-          <Button variant="light" size="sm" style={{ borderRadius: "50%" }}>
-            <FontAwesomeIcon icon={faSearch} />
-          </Button>
-        </Form>
-        <div className="d-flex align-items-center ms-3">
-          <FontAwesomeIcon icon={faBell} className="text-white mx-2" />
-          <FontAwesomeIcon
-            icon={faCog}
-            className="text-white mx-2"
-            onClick={toggleSettings}
-            style={{ cursor: "pointer" }}
-          />
-          <Dropdown>
-            <Dropdown.Toggle
-              variant="light"
-              id="profileMenu"
-              className="d-flex align-items-center"
-              style={buttonStyle} // Applique la couleur sélectionnée
+      <Row className="g-4 mb-4">
+        {stats && [
+          { 
+            icon: faComment, 
+            value: stats.totalAvis, 
+            label: 'totalAvis',
+            color: "#00c2cb" 
+          },
+          { 
+            icon: faThumbsUp,
+            value: stats.totalPositifs,
+            label: 'positifs',
+            color: "#00ff88"
+          },
+          { 
+            icon: faThumbsDown, 
+            value: stats.totalNegatifs, 
+            label: 'negatifs',
+            color: "#ff4444" 
+          },
+          { 
+            icon: faChartBar, 
+            value: `${stats.tauxSatisfaction}%`, 
+            label: 'satisfaction',
+            color: "#1e90ff" 
+          },
+        ].map((stat, index) => (
+          <Col md={3} key={index}>
+            <Card 
+              className="border-0 shadow-lg glass-card hover-transform" 
+              style={{ borderRadius: "15px", cursor: 'pointer' }}
+              onClick={() => setSelectedStat(stat.label)}
             >
-              <FontAwesomeIcon icon={faUser} className="me-2" /> 👑 Administrateur
-            </Dropdown.Toggle>
-            <Dropdown.Menu align="end">
-              <Dropdown.Item href="/profil">{texts.profile}</Dropdown.Item>
-              <Dropdown.Item onClick={toggleSettings}>{texts.settings}</Dropdown.Item>
-              <Dropdown.Divider />
-              <Dropdown.Item href="logout" className="text-danger" onClick={onLogout}>
-                🚪 {texts.logout}
-              </Dropdown.Item>
-            </Dropdown.Menu>
-          </Dropdown>
-          <Button
-            onClick={toggleTheme}
-            className="ms-2"
-            style={{
-              ...buttonStyle,
-              borderRadius: "20px",
-            }}
-          >
-            {theme === "dark" ? "🌞 Mode Clair" : "🌙 Mode Sombre"}
-          </Button>
-        </div>
-      </Navbar>
+              <Card.Body className="d-flex align-items-center gap-3">
+                <div className="icon-wrapper" style={{ backgroundColor: stat.color + '20' }}>
+                  <FontAwesomeIcon icon={stat.icon} style={{ color: stat.color, fontSize: "1.5rem" }} />
+                </div>
+                <div>
+                  <h2 className="mb-0">{stat.value}</h2>
+                  <small className="text-muted">{translations[language].stats[stat.label]}</small>
+                </div>
+              </Card.Body>
+            </Card>
+          </Col>
+        ))}
+      </Row>
 
-      {showSettings && (
-        <div
-          style={{
-            position: "fixed",
-            top: "60px",
-            right: "20px",
-            width: "400px", // Taille du carré
-            padding: "20px",
-            backgroundColor: "rgba(169, 169, 169, 0.7)", // Gris transparent
-            boxShadow: "0 4px 8px rgba(0,0,0,0.2)", // Ombre subtile
-            borderRadius: "15px", // Bordures arrondies
-            zIndex: 1040,
-            overflowY: "auto",
-            maxHeight: "80vh",
-            backdropFilter: "blur(10px)", // Effet de flou
-          }}
-        >
-          <h5>🛠️ Configuration du Dashboard</h5>
-          <div>
-            <label>Taille de police globale :</label>
-            <input
-              type="number"
-              className="form-control"
-              placeholder="16"
-            />
-          </div>
-          <div className="mt-2">
-            <label>Couleur :</label>
-            <input
-              type="color"
-              className="form-control form-control-color"
-              value={color}
-              onChange={(e) => setColor(e.target.value)} // Met à jour la couleur
-            />
-          </div>
-          <div className="mt-2">
-            <label>Langue :</label>
-            <select onChange={handleLanguageChange} value={language} className="form-select w-auto">
-              <option value="fr">Français</option>
-              <option value="en">English</option>
-            </select>
-          </div>
-          <Divider sx={{ my: 2 }} />
-          <Button variant="outline-primary" onClick={handleSettingChange}>Appliquer</Button>
-        </div>
-      )}
+      <Modal show={!!selectedStat} onHide={() => setSelectedStat(null)} centered>
+        <Modal.Header closeButton>
+          <Modal.Title>{translations[language].stats[selectedStat]}</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <h4 className="mb-3">{getStatDetails()}</h4>
+          {selectedStat === 'satisfaction' && (
+            <div className="text-center">
+              <Doughnut 
+                data={{
+                  labels: [translations[language].stats.positifs, translations[language].stats.negatifs],
+                  datasets: [{
+                    data: [stats.totalPositifs, stats.totalNegatifs],
+                    backgroundColor: ['#00ff88', '#ff4444'],
+                    borderWidth: 2
+                  }]
+                }}
+                options={{ maintainAspectRatio: false }}
+                width={300}
+                height={300}
+              />
+            </div>
+          )}
+        </Modal.Body>
+      </Modal>
     </>
   );
 };
 
-// ✅ Paramètres Section
-const Settings = () => (
-  <div style={{ padding: "20px", backgroundColor: "#f0f0f0", borderRadius: "8px", position: "fixed" }}>
-    <h3>Voir nos options de tableau de bord</h3>
-    <p>Paramètres de tableau de bord et autres options seront affichés ici.</p>
-    <div className="mt-2">
-    <label>Taille de police globale :</label>
-    <input
-      type="number"
-      className="form-control"
-      value={sliderValue}
-      onChange={handleSliderChange} // Met à jour la taille de police globale
-    />
-  </div>
-    {/* Ajouter les options de configuration ici */}
-  </div>
-);
-
-const Decor = ({ theme, primaryColor }) => {
-  console.log("Theme:", theme); // ✅ Vérification du thème dans la console
-
-  // Définir les styles en fonction du thème
-  const isDark = theme === "dark";
-  const textColor = isDark ? "#fff" : "#000";
-  const backgroundColor = isDark ? "#1c1c1c" : primaryColor;
-  const secondaryTextColor = isDark ? "#ddd" : "#333";
-  const imageFilter = isDark ? "brightness(0.8)" : "brightness(1)";
-
-  return (
-    <div 
-      className="decor-container mb-2"
-      style={{
-        backgroundColor,
-        padding: "20px",
-        borderRadius: "16px",
-        boxShadow: "0 6px 20px rgba(0,0,0,0.1)",
-        textAlign: "center",
-        color: textColor,
-        animation: "fadeIn 1s ease",
-        marginTop: "60px",
-        marginLeft: "200px"
-      }}
-    >
-      <h2 style={{
-        fontWeight: "bold",
-        fontSize: "26px",
-        color: textColor
-      }}>
-        👋 Bienvenue dans votre Tableau de Bord, Administrateur ! 🎉
-      </h2>
-      <p style={{ color: secondaryTextColor }}>
-        Nous sommes ravis de vous accueillir dans l’espace de gestion dédié à 
-        <strong> l’amélioration des services </strong> et au <strong> suivi des Patients </strong>. 
-        Vous avez maintenant toutes les clés pour superviser, gérer et optimiser les demandes avec efficacité. 🚀
-      </p>
-
-      <div className="d-flex justify-content-center mt-3">
-        {[
-          "https://images.unsplash.com/photo-1544717302-de2939b7ef71",
-          "https://plus.unsplash.com/premium_photo-1661286622480-0ac245ec4e0d",
-          "https://plus.unsplash.com/premium_photo-1661284892684-a100a0889fd9"
-        ].map((src, index) => (
-          <img
-            key={index}
-            src={src}
-            alt={`Illustration ${index + 1}`}
-            className="rounded shadow-lg mx-2"
-            style={{
-              width: "150px",
-              height: "150px",
-              objectFit: "cover",
-              transition: "transform 0.3s",
-              filter: imageFilter
-            }}
-            onMouseOver={(e) => e.target.style.transform = "scale(1.1)"}
-            onMouseOut={(e) => e.target.style.transform = "scale(1)"}
-          />
-        ))}
-      </div>
-    </div>
-  );
-};
-
-
-const handleLanguageChange = (event) => {
-  setLanguage(event.target.value);
-  localStorage.setItem("language", event.target.value); // Sauvegarde la langue pour persistance
-};
-
-// ✅ Gestion du Personnel Component
-const GestionPersonnel = () => {
+const UserManagement = ({ currentTheme, language }) => {
   const [users, setUsers] = useState([]);
+  const [message, setMessage] = useState("");
+  const [editingId, setEditingId] = useState(null);
+  const [showForm, setShowForm] = useState(false);
+  const [formData, setFormData] = useState({
+    name: "",
+    email: "",
+    password: "",
+    password_confirmation: "",
+    tel: "",
+    adresse: "",
+    dateNaissance: "",
+    status: "active",
+    role: "medecin"
+  });
+  const [searchTerm, setSearchTerm] = useState("");
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [searchTerm, setSearchTerm] = useState(""); // État pour la recherche
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [selectedUser, setSelectedUser] = useState(null);
 
-  
   useEffect(() => {
-    axios
-      .get("/api/users")
-      .then((response) => {
-        setUsers(response.data);
-        setLoading(false);
-      })
-      .catch((error) => {
-        setError("Erreur lors de la récupération des utilisateurs.");
-        setLoading(false);
+    fetchUsers();
+  }, []);
+
+  const fetchUsers = async () => {
+    try {
+      const response = await axios.get("http://127.0.0.1:8000/users");
+      const adaptedUsers = response.data.map(user => ({
+        ...user,
+        roles: [{ name: user.role }],
+        date_naissance: user.dateNaissance || user.date_naissance
+      }));
+
+      const sortedUsers = adaptedUsers.sort((a, b) => {
+        const rolePriority = { 
+          administrateur: 1, 
+          medecin: 2, 
+          secretaire: 3, 
+          patient: 4 
+        };
+        return rolePriority[a.roles[0].name] - rolePriority[b.roles[0].name];
       });
       
-      
-  }, []);
-  useEffect(() => {
-    const savedLanguage = localStorage.getItem("language");
-    if (savedLanguage) {
-      setLanguage(savedLanguage);
-      setTexts(translations[savedLanguage]);
+      setUsers(sortedUsers);
+      setLoading(false);
+    } catch (error) {
+      console.error("Erreur lors du chargement des utilisateurs", error);
+      setMessage("Erreur lors du chargement des utilisateurs");
+      setLoading(false);
     }
-  }, []);
-  
-  
-
-  const handleSearchChange = (event) => {
-    setSearchTerm(event.target.value);
   };
 
-  const filteredUsers = users.filter((user) => {
-    return (
-      user.name.toLowerCase().includes(searchTerm.toLowerCase()) || // Filtrer par nom
-      user.email.toLowerCase().includes(searchTerm.toLowerCase()) // Filtrer par email
-    );
-  });
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
 
-  if (loading) return <div className="text-center my-5"><Spinner animation="border" /></div>;
-  if (error) return <Alert variant="danger" className="my-5">{error}</Alert>;
+  const handleEdit = (user) => {
+    setFormData({
+      name: user.name || "",
+      email: user.email || "",
+      tel: user.tel || "",
+      adresse: user.adresse || user.address || "",
+      dateNaissance: user.date_naissance || "",
+      status: user.status || "active",
+      role: user.roles[0]?.name || user.role || "medecin",
+      password: "",
+      password_confirmation: ""
+    });
+    setEditingId(user.id);
+    setShowForm(true);
+    setMessage("");
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    
+    if (!editingId && formData.password !== formData.password_confirmation) {
+      setMessage(translations[language].passwordsDontMatch);
+      return;
+    }
+
+    try {
+      const payload = {
+        ...formData,
+        dateNaissance: formData.dateNaissance,
+        role: formData.role
+      };
+
+      if (editingId) {
+        if (!payload.password) {
+          delete payload.password;
+          delete payload.password_confirmation;
+        }
+        await axios.put(`http://127.0.0.1:8000/users/update/${editingId}`, payload);
+        setMessage(translations[language].successUpdate);
+      } else {
+        await axios.post("http://127.0.0.1:8000/users/create", payload);
+        setMessage(translations[language].successCreate);
+      }
+
+      resetForm();
+      fetchUsers();
+    } catch (error) {
+      console.error("Erreur lors de l'opération", error);
+      setMessage("Erreur : " + (error.response?.data?.message || error.message));
+    }
+  };
+
+  const handleDelete = async () => {
+    try {
+      await axios.delete(`http://127.0.0.1:8000/users/destroy/${selectedUser}`);
+      setMessage(translations[language].successDelete);
+      fetchUsers();
+    } catch (error) {
+      console.error("Erreur lors de la suppression", error);
+      setMessage(translations[language].errorDelete);
+    }
+    setShowDeleteModal(false);
+  };
+
+  const resetForm = () => {
+    setFormData({
+      name: "",
+      email: "",
+      password: "",
+      password_confirmation: "",
+      tel: "",
+      adresse: "",
+      dateNaissance: "",
+      status: "active",
+      role: "medecin"
+    });
+    setEditingId(null);
+    setShowForm(false);
+  };
+
+  const filteredUsers = users.filter(user =>
+    user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    user.email.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const UserBadge = ({ roles }) => {
+    const roleArray = Array.isArray(roles) ? roles : [{ name: roles }];
+    
+    return (
+      <>
+        {roleArray.map((role, index) => {
+          let Icon, Label;
+          switch(role.name) {
+            case 'medecin':
+              Icon = faUserMd;
+              Label = translations[language].roles.doctor;
+              break;
+            case 'administrateur':
+              Icon = faUserShield;
+              Label = translations[language].roles.admin;
+              break;
+            case 'secretaire':
+              Icon = faUserSecret;
+              Label = translations[language].roles.secretary;
+              break;
+            case 'patient':
+              Icon = faUserInjured;
+              Label = translations[language].roles.patient;
+              break;
+            default:
+              Icon = faUserSecret;
+              Label = 'administrateur';
+          }
+          return (
+            <Badge 
+              key={index} 
+              pill 
+              className="me-1"
+              style={{ 
+                backgroundColor: currentTheme === 'dark' ? '#00c2cb20' : '#1e90ff20',
+                color: currentTheme === 'dark' ? '#00c2cb' : '#1e90ff'
+              }}
+            >
+              <FontAwesomeIcon icon={Icon} className="me-1" />
+              {Label}
+            </Badge>
+          );
+        })}
+      </>
+    );
+  };
+
+  const StatusIndicator = ({ status }) => (
+    <div className="d-flex align-items-center gap-2">
+      <div 
+        style={{ 
+          width: 10, 
+          height: 10, 
+          borderRadius: '50%',
+          backgroundColor: status === 'active' ? '#28a745' : '#dc3545'
+        }} 
+      />
+      {translations[language][status]}
+    </div>
+  );
 
   return (
-    <Container fluid style={{ marginLeft: "250px", padding: "20px", backgroundColor }}>
-  
-      <Card>
-        <Card.Body>
-          <Form className="d-flex mb-3">
-            <Form.Control
-              type="text"
-              placeholder="Rechercher un utilisateur..."
+    <Card className="border-0 shadow-lg glass-card" style={{ borderRadius: "15px" }}>
+      <Card.Body>
+        <div className="d-flex justify-content-between align-items-center mb-4">
+          <h3 style={{ color: currentTheme.text }}>
+            <FontAwesomeIcon icon={faUserMd} className="me-2" />
+            {translations[language].personnelManagement}
+          </h3>
+          
+          <div className="d-flex gap-2">
+            <Form.Control 
+              type="search" 
+              placeholder={translations[language].searchPlaceholder}
+              className="rounded-pill"
+              style={{ width: "300px", background: "rgba(255,255,255,0.1)", border: "none" }}
               value={searchTerm}
-              onChange={handleSearchChange}
-              size="sm"
+              onChange={(e) => setSearchTerm(e.target.value)}
             />
-          </Form>
-          <Table striped bordered hover responsive>
-            <thead style={{ backgroundColor: primaryColor, color: "#fff" }}>
-              <tr>
-                <th>ID</th>
-                <th>Nom</th>
-                <th>Email</th>
-                <th>Téléphone</th>
-                <th>Adresse</th>
-                <th>Date de Naissance</th>
-                <th>Statut</th>
-                <th>Actions</th>
+            <Button 
+              variant="primary" 
+              onClick={() => setShowForm(true)}
+              className="rounded-pill"
+            >
+              <FontAwesomeIcon icon={faPlus} className="me-2" />
+              {translations[language].newUser}
+            </Button>
+          </div>
+        </div>
+
+        {message && (
+          <Alert 
+            variant={message.includes("Erreur") || message.includes("Error") ? "danger" : "success"} 
+            onClose={() => setMessage("")}
+            dismissible
+            className="mt-3"
+          >
+            {message}
+          </Alert>
+        )}
+
+        {loading ? (
+          <div className="text-center py-5">
+            <Spinner animation="border" variant="primary" />
+          </div>
+        ) : (
+          <Table hover responsive className="align-middle">
+            <thead>
+              <tr style={{ background: currentTheme.cardBackground }}>
+                <th style={{ color: currentTheme.text }}>{translations[language].fullName}</th>
+                <th style={{ color: currentTheme.text }}>Email</th>
+                <th style={{ color: currentTheme.text }}>{translations[language].role}</th>
+                <th style={{ color: currentTheme.text }}>Statut</th>
+                <th style={{ color: currentTheme.text }}>{translations[language].actions}</th>
               </tr>
             </thead>
             <tbody>
-              {filteredUsers.map((user) => (
-                <tr key={user.id}>
-                  <td>{user.id}</td>
-                  <td>{user.name}</td>
-                  <td>{user.email}</td>
-                  <td>{user.tel}</td>
-                  <td>{user.adresse}</td>
-                  <td>{user.date_naissance}</td>
-                  <td>{user.status}</td>
+              {filteredUsers.map(user => (
+                <tr 
+                  key={user.id} 
+                  className="hover-transform"
+                  style={{ background: currentTheme.cardBackground }}
+                >
+                  <td style={{ color: currentTheme.text }}>
+                    <div className="d-flex align-items-center gap-2">
+                      <div 
+                        className="rounded-circle d-flex align-items-center justify-content-center"
+                        style={{
+                          width: 40,
+                          height: 40,
+                          backgroundColor: currentTheme.primary + '20',
+                          color: currentTheme.primary
+                        }}
+                      >
+                        {user.name.charAt(0)}
+                      </div>
+                      <div>
+                        <div>{user.name}</div>
+                        <small className="text-muted">
+                          {new Date(user.date_naissance).toLocaleDateString(language)}
+                        </small>
+                      </div>
+                    </div>
+                  </td>
+                  <td style={{ color: currentTheme.text }}>
+                    <div>{user.email}</div>
+                    <small className="text-muted">{user.tel || user.phone}</small>
+                  </td>
+                  <td><UserBadge roles={user.roles} /></td>
+                  <td><StatusIndicator status={user.status} /></td>
+                  <td>
+                    <Stack direction="horizontal" gap={2}>
+                      <Button 
+                        variant="link" 
+                        className="text-primary"
+                        onClick={() => handleEdit(user)}
+                      >
+                        <FontAwesomeIcon icon={faEdit} />
+                      </Button>
+                      <Button 
+                        variant="link" 
+                        className="text-danger"
+                        onClick={() => {
+                          setSelectedUser(user.id);
+                          setShowDeleteModal(true);
+                        }}
+                      >
+                        <FontAwesomeIcon icon={faTrashAlt} />
+                      </Button>
+                    </Stack>
+                  </td>
                 </tr>
               ))}
             </tbody>
           </Table>
+        )}
+
+        <Modal show={showForm} onHide={resetForm} centered>
+          <Modal.Header closeButton>
+            <Modal.Title>
+              {editingId ? translations[language].editUser : translations[language].newUser}
+            </Modal.Title>
+          </Modal.Header>
+          <Modal.Body>
+            <Form onSubmit={handleSubmit}>
+              <Row className="g-3">
+                <Col md={6}>
+                  <Form.Group>
+                    <Form.Label>{translations[language].fullName}</Form.Label>
+                    <Form.Control
+                      name="name"
+                      value={formData.name}
+                      onChange={handleInputChange}
+                      required
+                    />
+                  </Form.Group>
+                </Col>
+                <Col md={6}>
+                  <Form.Group>
+                    <Form.Label>Email</Form.Label>
+                    <Form.Control
+                      type="email"
+                      name="email"
+                      value={formData.email}
+                      onChange={handleInputChange}
+                      required
+                    />
+                  </Form.Group>
+                </Col>
+
+                <Col md={6}>
+                  <Form.Group>
+                    <Form.Label>
+                      {translations[language].password} 
+                      {!editingId && <span className="text-danger">*</span>}
+                    </Form.Label>
+                    <Form.Control
+                      type="password"
+                      name="password"
+                      value={formData.password}
+                      onChange={handleInputChange}
+                      required={!editingId}
+                    />
+                    {editingId && (
+                      <Form.Text className="text-muted">
+                        {translations[language].leaveBlank}
+                      </Form.Text>
+                    )}
+                  </Form.Group>
+                </Col>
+                <Col md={6}>
+                  <Form.Group>
+                    <Form.Label>
+                      {translations[language].passwordConfirmation} 
+                      {!editingId && <span className="text-danger">*</span>}
+                    </Form.Label>
+                    <Form.Control
+                      type="password"
+                      name="password_confirmation"
+                      value={formData.password_confirmation}
+                      onChange={handleInputChange}
+                      required={!editingId}
+                    />
+                  </Form.Group>
+                </Col>
+                    
+                <Col md={6}>
+                  <Form.Group>
+                    <Form.Label>{translations[language].phone}</Form.Label>
+                    <Form.Control
+                      name="tel"
+                      value={formData.tel}
+                      onChange={handleInputChange}
+                      required
+                    />
+                  </Form.Group>
+                </Col>
+                <Col md={6}>
+                  <Form.Group>
+                    <Form.Label>{translations[language].birthDate}</Form.Label>
+                    <Form.Control
+                      type="date"
+                      name="dateNaissance"
+                      value={formData.dateNaissance}
+                      onChange={handleInputChange}
+                      required
+                    />
+                  </Form.Group>
+                </Col>
+                <Col md={12}>
+                  <Form.Group>
+                    <Form.Label>{translations[language].address}</Form.Label>
+                    <Form.Control
+                      name="adresse"
+                      value={formData.adresse}
+                      onChange={handleInputChange}
+                      required
+                    />
+                  </Form.Group>
+                </Col>
+                <Col md={6}>
+                  <Form.Group>
+                    <Form.Label>{translations[language].status}</Form.Label>
+                    <Form.Select
+                      name="status"
+                      value={formData.status}
+                      onChange={handleInputChange}
+                    >
+                      <option value="active">{translations[language].active}</option>
+                      <option value="inactive">{translations[language].inactive}</option>
+                    </Form.Select>
+                  </Form.Group>
+                </Col>
+                <Col md={6}>
+                  <Form.Group>
+                    <Form.Label>{translations[language].role}</Form.Label>
+                    <Form.Select
+                      name="role"
+                      value={formData.role}
+                      onChange={handleInputChange}
+                    >
+                      <option value="medecin">{translations[language].roles.doctor}</option>
+                      <option value="administrateur">{translations[language].roles.admin}</option>
+                      <option value="secretaire">{translations[language].roles.secretary}</option>
+                      <option value="patient">{translations[language].roles.patient}</option>
+                    </Form.Select>
+                  </Form.Group>
+                </Col>
+              </Row>
+              <div className="d-flex justify-content-end gap-2 mt-4">
+                <Button variant="secondary" onClick={resetForm}>
+                  {translations[language].cancel}
+                </Button>
+                <Button variant="primary" type="submit">
+                  {editingId ? translations[language].update : translations[language].create}
+                </Button>
+              </div>
+            </Form>
+          </Modal.Body>
+        </Modal>
+
+        <Modal show={showDeleteModal} onHide={() => setShowDeleteModal(false)} centered>
+          <Modal.Header closeButton>
+            <Modal.Title>{translations[language].confirmDelete}</Modal.Title>
+          </Modal.Header>
+          <Modal.Body>{translations[language].deleteMessage}</Modal.Body>
+          <Modal.Footer>
+            <Button variant="secondary" onClick={() => setShowDeleteModal(false)}>
+              {translations[language].cancel}
+            </Button>
+            <Button variant="danger" onClick={handleDelete}>
+              {translations[language].confirm}
+            </Button>
+          </Modal.Footer>
+        </Modal>
+      </Card.Body>
+    </Card>
+  );
+};
+
+const AvisManagement = ({ avis, currentTheme, language, loading }) => {
+  const [searchTerm, setSearchTerm] = useState("");
+
+  const StarRating = ({ note }) => {
+    return (
+      <div className="d-flex align-items-center">
+        {[...Array(5)].map((_, index) => (
+          <FontAwesomeIcon
+            key={index}
+            icon={faStar}
+            size="sm"
+            className="me-1"
+            style={{ 
+              color: index < note ? '#ffd700' : '#e4e5e9',
+              filter: index < note ? 'drop-shadow(0 0 2px rgba(255,215,0,0.5))' : 'none'
+            }}
+          />
+        ))}
+        <span className="ms-2 text-muted">({note}/5)</span>
+      </div>
+    );
+  };
+
+  const filteredAvis = avis.filter(avisItem =>
+    avisItem.nom.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    avisItem.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    avisItem.message.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  return (
+    <Card className="border-0 shadow-lg glass-card" style={{ borderRadius: "15px" }}>
+      <Card.Body>
+        <div className="d-flex justify-content-between align-items-center mb-4">
+          <h3 style={{ color: currentTheme.text }}>
+            {translations[language].avisManagement}
+          </h3>
+          <Form.Control 
+            type="search" 
+            placeholder={translations[language].searchPlaceholder}
+            className="rounded-pill"
+            style={{ width: "300px", background: "rgba(255,255,255,0.1)", border: "none" }}
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+        </div>
+        
+        {loading ? (
+          <div className="text-center py-5">
+            <Spinner animation="border" variant="primary" />
+          </div>
+        ) : (
+          <Table hover responsive className="align-middle">
+            <thead>
+              <tr style={{ background: currentTheme.cardBackground }}>
+                <th style={{ color: currentTheme.text }}>Nom</th>
+                <th style={{ color: currentTheme.text }}>Email</th>
+                <th style={{ color: currentTheme.text }}>Message</th>
+                <th style={{ color: currentTheme.text }}>Note</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredAvis.map(avisItem => (
+                <tr 
+                  key={avisItem.id} 
+                  className="hover-transform"
+                  style={{ background: currentTheme.cardBackground }}
+                >
+                  <td style={{ color: currentTheme.text }}>{avisItem.nom}</td>
+                  <td style={{ color: currentTheme.text }}>{avisItem.email}</td>
+                  <td style={{ color: currentTheme.text }}>{avisItem.message}</td>
+                  <td>
+                    <StarRating note={avisItem.note} />
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </Table>
+        )}
+      </Card.Body>
+    </Card>
+  );
+};
+
+const Reports = ({ currentTheme, language }) => {
+  const [successCount, setSuccessCount] = useState(0);
+  const [cancelledCount, setCancelledCount] = useState(0);
+  const [motifStats, setMotifStats] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const response = await axios.get("http://localhost:8000/api/reports");
+        setSuccessCount(response.data.totalReussies);
+        setCancelledCount(response.data.totalAnnulees);
+        setMotifStats(response.data.motifStats);
+        setLoading(false);
+      } catch (error) {
+        console.error("Erreur de récupération des rapports:", error);
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, []);
+
+  const doughnutData = {
+    labels: [translations[language].completed, translations[language].pending],
+    datasets: [
+      {
+        data: [successCount, cancelledCount],
+        backgroundColor: ['#FF6384', '#36A2EB'],
+        hoverBackgroundColor: ['#FF80A0', '#50B4F5'],
+        borderWidth: 2,
+      },
+    ],
+  };
+
+  const motifData = {
+    labels: motifStats.map(item => item.motif),
+    datasets: [
+      {
+        label: translations[language].consultationsByReason,
+        data: motifStats.map(item => item.total),
+        backgroundColor: motifStats.map(() => 
+          `#${Math.floor(Math.random()*16777215).toString(16)}`
+        ),
+        borderColor: currentTheme.cardBackground,
+        borderWidth: 2,
+      },
+    ],
+  };
+
+  const successPercentage = successCount ? ((successCount / (successCount + cancelledCount)) * 100).toFixed(1) : 0;
+  const cancelledPercentage = cancelledCount ? ((cancelledCount / (successCount + cancelledCount)) * 100).toFixed(1) : 0;
+
+  return (
+    <Container className="py-4">
+      <Card className="border-0 shadow-lg glass-card">
+        <Card.Body>
+          <div className="text-center py-4 header-container" style={{
+            background: currentTheme.gradient,
+            borderRadius: "16px",
+            marginBottom: "2rem"
+          }}>
+            <h1 className="display-5 fw-bold" style={{ color: currentTheme.text }}>
+              <FontAwesomeIcon icon={faChartPie} className="me-2" />
+              {translations[language].performanceAnalysis}
+            </h1>
+            <p className="fs-5" style={{ color: currentTheme.text }}>
+              {translations[language].performanceSubtitle}
+            </p>
+          </div>
+
+          {loading ? (
+            <div className="d-flex justify-content-center align-items-center" style={{ minHeight: '300px' }}>
+              <Spinner animation="border" variant="primary" style={{ width: '4rem', height: '4rem' }} />
+            </div>
+          ) : (
+            <>
+              <Row className="g-4 mb-4">
+                {[
+                  { 
+                    icon: faChartPie, 
+                    title: translations[language].completedConsultations, 
+                    value: successCount 
+                  },
+                  { 
+                    icon: faChartBar, 
+                    title: translations[language].pendingConsultations, 
+                    value: cancelledCount 
+                  }
+                ].map((stat, index) => (
+                  <Col md={6} key={index}>
+                    <Card className="border-0 shadow-lg glass-card" style={{ 
+                      background: currentTheme.primary,
+                      color: 'white',
+                      borderRadius: "16px"
+                    }}>
+                      <Card.Body className="text-center">
+                        <FontAwesomeIcon icon={stat.icon} size="2x" className="mb-3" />
+                        <h5 className="card-title">{stat.title}</h5>
+                        <p className="card-text fs-3 fw-bold">{stat.value}</p>
+                      </Card.Body>
+                    </Card>
+                  </Col>
+                ))}
+              </Row>
+
+              <Row className="g-4">
+                <Col lg={5}>
+                  <Card className="border-0 shadow-lg glass-card h-100">
+                    <Card.Body>
+                      <h4 className="text-center mb-3" style={{ color: currentTheme.text }}>
+                        {translations[language].consultationRate}
+                      </h4>
+                      <div style={{ width: '70%', margin: '0 auto' }}>
+                        <Doughnut data={doughnutData} />
+                      </div>
+                      <div className="mt-3 text-center" style={{ color: currentTheme.text }}>
+                        ✅ {successPercentage}% {translations[language].completed} | 
+                        ⏳ {cancelledPercentage}% {translations[language].pending}
+                      </div>
+                    </Card.Body>
+                  </Card>
+                </Col>
+
+                <Col lg={7}>
+                  <Card className="border-0 shadow-lg glass-card h-100">
+                    <Card.Body>
+                      <h4 className="text-center mb-3" style={{ color: currentTheme.text }}>
+                        {translations[language].consultationsByReason}
+                      </h4>
+                      <Bar 
+                        data={motifData} 
+                        options={{ 
+                          plugins: { 
+                            legend: { 
+                              labels: { color: currentTheme.text } 
+                            } 
+                          },
+                          scales: {
+                            y: {
+                              ticks: { color: currentTheme.text },
+                              grid: { color: currentTheme.text + '20' }
+                            },
+                            x: {
+                              ticks: { color: currentTheme.text },
+                              grid: { color: currentTheme.text + '20' }
+                            }
+                          }
+                        }}
+                      />
+                    </Card.Body>
+                  </Card>
+                </Col>
+              </Row>
+
+              <div className="text-center mt-5">
+                <Button 
+                  variant="primary" 
+                  className="rounded-pill px-4 py-2"
+                  onClick={() => window.location.reload()}
+                  style={{ background: currentTheme.primary, border: 'none' }}
+                >
+                  <FontAwesomeIcon icon={faSyncAlt} className="me-2" />
+                  {translations[language].refreshStats}
+                </Button>
+              </div>
+            </>
+          )}
         </Card.Body>
       </Card>
     </Container>
   );
 };
 
+const ProfilCard = ({ profil, onUpdate, currentTheme, language, isEditing, setIsEditing }) => {
+  const [formData, setFormData] = useState({ ...profil });
 
-// ✅ Liste des avis des patients
-const AvisList = () => {
+  const handleChange = (e) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    onUpdate(formData);
+    setIsEditing(false);
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5 }}
+    >
+      <Card className="glass-card border-0 shadow-lg" style={{ borderRadius: "15px" }}>
+        <Card.Body className="p-4">
+          {!isEditing ? (
+            <>
+              <div className="text-center mb-4">
+                <FontAwesomeIcon 
+                  icon={faUser} 
+                  size="2x" 
+                  className="mb-3"
+                  style={{ color: currentTheme.primary }}
+                />
+                <h3 style={{ color: currentTheme.text }}>{formData.nom}</h3>
+                <Badge 
+                  pill 
+                  style={{ 
+                    background: currentTheme.primary + '20',
+                    color: currentTheme.primary
+                  }}
+                >
+                  Administrateur
+                </Badge>
+              </div>
+
+              <div className="mb-4">
+                <div className="d-flex align-items-center gap-3 mb-3">
+                  <FontAwesomeIcon icon={faEnvelope} style={{ color: currentTheme.primary }} />
+                  <span style={{ color: currentTheme.text }}>{formData.email}</span>
+                </div>
+                <div className="d-flex align-items-center gap-3 mb-3">
+                  <FontAwesomeIcon icon={faPhone} style={{ color: currentTheme.primary }} />
+                  <span style={{ color: currentTheme.text }}>{formData.tel}</span>
+                </div>
+                <div className="d-flex align-items-center gap-3 mb-3">
+                  <FontAwesomeIcon icon={faHome} style={{ color: currentTheme.primary }} />
+                  <span style={{ color: currentTheme.text }}>{formData.adresse}</span>
+                </div>
+                <div className="d-flex align-items-center gap-3">
+                  <FontAwesomeIcon icon={faBirthdayCake} style={{ color: currentTheme.primary }} />
+                  <span style={{ color: currentTheme.text }}>{formData.date_naissance}</span>
+                </div>
+              </div>
+
+              <Button
+                variant="primary"
+                className="w-100"
+                onClick={() => setIsEditing(true)}
+              >
+                {translations[language].editProfile}
+              </Button>
+            </>
+          ) : (
+            <form onSubmit={handleSubmit}>
+              <Form.Group className="mb-3">
+                <Form.Label style={{ color: currentTheme.text }}>Nom</Form.Label>
+                <Form.Control
+                  name="nom"
+                  value={formData.nom}
+                  onChange={handleChange}
+                  style={{ 
+                    background: currentTheme.cardBackground,
+                    color: currentTheme.text
+                  }}
+                />
+              </Form.Group>
+
+              <Form.Group className="mb-3">
+                <Form.Label style={{ color: currentTheme.text }}>Email</Form.Label>
+                <Form.Control
+                  type="email"
+                  name="email"
+                  value={formData.email}
+                  onChange={handleChange}
+                  style={{ 
+                    background: currentTheme.cardBackground,
+                    color: currentTheme.text
+                  }}
+                />
+              </Form.Group>
+
+              <Form.Group className="mb-3">
+                <Form.Label style={{ color: currentTheme.text }}>Téléphone</Form.Label>
+                <Form.Control
+                  name="tel"
+                  value={formData.tel}
+                  onChange={handleChange}
+                  style={{ 
+                    background: currentTheme.cardBackground,
+                    color: currentTheme.text
+                  }}
+                />
+              </Form.Group>
+
+              <Form.Group className="mb-3">
+                <Form.Label style={{ color: currentTheme.text }}>Adresse</Form.Label>
+                <Form.Control
+                  name="adresse"
+                  value={formData.adresse}
+                  onChange={handleChange}
+                  style={{ 
+                    background: currentTheme.cardBackground,
+                    color: currentTheme.text
+                  }}
+                />
+              </Form.Group>
+
+              <Form.Group className="mb-3">
+                <Form.Label style={{ color: currentTheme.text }}>Date de naissance</Form.Label>
+                <Form.Control
+                  type="date"
+                  name="date_naissance"
+                  value={formData.date_naissance}
+                  onChange={handleChange}
+                  style={{ 
+                    background: currentTheme.cardBackground,
+                    color: currentTheme.text
+                  }}
+                />
+              </Form.Group>
+              
+              <div className="d-flex gap-2">
+                <Button variant="success" type="submit" className="flex-grow-1">
+                  {translations[language].save}
+                </Button>
+                <Button 
+                  variant="secondary" 
+                  onClick={() => setIsEditing(false)}
+                  className="flex-grow-1"
+                >
+                  {translations[language].cancel}
+                </Button>
+              </div>
+            </form>
+          )}
+        </Card.Body>
+      </Card>
+    </motion.div>
+  );
+};
+
+const Profil = ({ currentTheme, language }) => {
+  const [profil, setProfil] = useState(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const [alert, setAlert] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchProfil = async () => {
+      try {
+        const response = await axios.get("http://localhost:8000/api/profil");
+        setProfil(response.data);
+        setLoading(false);
+      } catch (error) {
+        setAlert({ type: "danger", message: translations[language].updateError });
+        setLoading(false);
+      }
+    };
+
+    fetchProfil();
+  }, [language]);
+
+  const handleUpdate = async (newData) => {
+    try {
+      const response = await axios.put("http://localhost:8000/api/profil/update", newData);
+      setProfil(response.data);
+      setAlert({ type: "success", message: translations[language].updateSuccess });
+    } catch (error) {
+      setAlert({ type: "danger", message: translations[language].updateError });
+    }
+  };
+
+  return (
+    <Container className="py-5">
+      <Row className="justify-content-center">
+        <Col md={8} lg={6}>
+          {alert && (
+            <Alert 
+              variant={alert.type} 
+              onClose={() => setAlert(null)} 
+              dismissible
+              className="mb-4"
+            >
+              {alert.message}
+            </Alert>
+          )}
+
+          {loading ? (
+            <div className="text-center">
+              <Spinner animation="border" variant="primary" />
+            </div>
+          ) : (
+            <ProfilCard
+              profil={profil}
+              onUpdate={handleUpdate}
+              currentTheme={currentTheme}
+              language={language}
+              isEditing={isEditing}
+              setIsEditing={setIsEditing}
+            />
+          )}
+        </Col>
+      </Row>
+    </Container>
+  );
+};
+
+const AdminDashboard = () => {
+  const [theme, setTheme] = useState("light");
+  const [language, setLanguage] = useState("fr");
   const [avis, setAvis] = useState([]);
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const location = useLocation();
+  const currentTheme = themeConfig[theme];
 
   useEffect(() => {
-    axios
-    .get("http://127.0.0.1:8000/api/avis/stats")
-    .then((response) => {
-      setStats(response.data);
-      setLoading(false); // Fin du chargement
-    })
-    .catch((error) => {
-      console.error("Erreur lors de la récupération des statistiques : ", error);
-      setError("Erreur lors de la récupération des statistiques.");
-      setLoading(false); // Fin du chargement malgré l'erreur
-    });
+    const fetchData = async () => {
+      try {
+        const [avisResponse, statsResponse] = await Promise.all([
+          axios.get("http://localhost:8000/api/avis"),
+          axios.get("http://localhost:8000/api/users")
+        ]);
 
-    axios
-      .get("http://127.0.0.1:8000/api/avis/stats")
-      .then((response) => {
-        setStats(response.data);
+        setAvis(avisResponse.data);
+        setStats(statsResponse.data);
         setLoading(false);
-      })
-      .catch((error) => {
-        setError("Erreur lors de la récupération des statistiques.");
+      } catch (error) {
+        console.error("Error fetching data:", error);
         setLoading(false);
-      });
+      }
+    };
+
+    fetchData();
   }, []);
 
-  if (loading) {
-    return (
-      <div className="text-center my-5">
-        <Spinner animation="border" />
-        <p>Chargement des avis...</p>
-      </div>
-    );
-  }
-
-  if (error) {
-    return <Alert variant="danger" className="my-5">{error}</Alert>;
-  }
+  const toggleTheme = () => setTheme(prev => prev === "dark" ? "light" : "dark");
+  const switchLanguage = (lang) => setLanguage(lang);
 
   return (
-    <div className="container mt-4">
-      <h2>Liste des Avis des Patients</h2>
-      {stats && (
-     <Card
-     className="mb-4"
-     style={{
-      backgroundColor: "#f0f0f0", // Couleur de fond pour la section des statistiques
-      padding: "15px", // Réduction de l'espace intérieur
-      borderRadius: "5px",
-      marginTop: "10px", // Espacement entre le titre et la carte
-      textAlign: "left", // Aligner le texte à gauche
-      backgroundPosition: "right", // Aligner l'arrière-plan à droite (si vous avez une image d'arrière-plan)
-      backgroundSize: "cover", // Couvrir toute la section
-      width: "60%", // Réduire la largeur de la carte (peut être ajusté selon le besoin)
-      marginLeft: "auto", // Centrer la carte horizontalement
-      marginRight: "auto", // Centrer la carte horizontalement
-    }}
-   >
-          <Card.Body>
-            <h3>Statistiques des Avis</h3>
-             <h3 style={{ fontSize: "10px" }}>Statistiques des Avis</h3>
-             <ul style={{ fontSize: "14px", lineHeight: "1.3", marginBottom: "10px" }}>
- 
-              <li>Total des avis : {stats.totalAvis}</li>
-              <li>Avis positifs : {stats.totalPositifs}</li>
-              <li>Avis négatifs : {stats.totalNegatifs}</li>
-              <li>Taux de satisfaction : {stats.tauxSatisfaction}%</li>
-              <li>Taux de mécontentement : {stats.tauxMecontentement}%</li>
-            </ul>
-          </Card.Body>
-        </Card>
-      )}
+    <div style={{ 
+      minHeight: "100vh",
+      background: currentTheme.gradient,
+      color: currentTheme.text,
+      backgroundImage: theme === "dark" ? currentTheme.backgroundImage : "none",
+      backgroundSize: "cover",
+      backgroundAttachment: "fixed"
+    }}>
+      <Navbar expand="lg" className="p-3" style={{ 
+        background: currentTheme.gradient,
+        boxShadow: "0 4px 15px rgba(0,0,0,0.2)",
+        backdropFilter: "blur(10px)"
+      }}>
+        <Container fluid>
+          <Navbar.Brand className="text-white d-flex align-items-center">
+            <span className="me-2">🏥</span>
+            <h2 style={{ fontFamily: "'Montserrat', sans-serif", margin: 0 }}>AI-MedCare 🩺🤍</h2>
+          </Navbar.Brand>
 
-      <Table striped bordered hover responsive>
-        <thead style={{ backgroundColor: "#1e90ff", color: "#fff" }}>
-          
-        </thead>
-        <tbody>
-          {avis.map((item, index) => (
-            <tr key={item.id}>
-              <td>{index + 1}</td>
-              <td>{item.nom}</td>
-              <td>{item.commentaire}</td>
-              <td>{new Date(item.created_at).toLocaleDateString()}</td>
-            </tr>
-          ))}
-        </tbody>
-      </Table>
+          <div className="d-flex align-items-center gap-4 ms-auto">
+            <Button 
+              variant="light" 
+              className="rounded-pill px-3 d-flex align-items-center"
+              onClick={toggleTheme}
+            >
+              <FontAwesomeIcon icon={theme === "dark" ? faSun : faMoon} className="me-2" />
+              {theme === "dark" ? "Light" : "Dark"}
+            </Button>
+            
+            <Dropdown>
+              <Dropdown.Toggle variant="light" className="d-flex align-items-center rounded-pill">
+                <FontAwesomeIcon icon={faGlobe} className="me-2" />
+                {language.toUpperCase()}
+              </Dropdown.Toggle>
+              <Dropdown.Menu className="shadow-lg">
+                <Dropdown.Item onClick={() => switchLanguage('fr')}>Français</Dropdown.Item>
+                <Dropdown.Item onClick={() => switchLanguage('en')}>English</Dropdown.Item>
+              </Dropdown.Menu>
+            </Dropdown>
+
+            <Dropdown align="end">
+              <Dropdown.Toggle variant="light" className="d-flex align-items-center rounded-pill">
+                <FontAwesomeIcon icon={faUser} className="me-2" />
+                {translations[language].profile}
+              </Dropdown.Toggle>
+              <Dropdown.Menu className="shadow-lg">
+                <Dropdown.Item 
+                  as={Link} 
+                  to="/profil"
+                  className="d-flex align-items-center gap-2"
+                >
+                  <FontAwesomeIcon icon={faCog} />
+                  {translations[language].settings}
+                </Dropdown.Item>
+                <Dropdown.Divider />
+                <Dropdown.Item className="text-danger">
+                  <FontAwesomeIcon icon={faSignOutAlt} className="me-2" />
+                  {translations[language].logout}
+                </Dropdown.Item>
+              </Dropdown.Menu>
+            </Dropdown>
+          </div>
+        </Container>
+      </Navbar>
+
+      <Container fluid>
+        <Row>
+          <Col md={3} className="p-4" style={{ 
+            backdropFilter: "blur(10px)",
+            borderRight: `1px solid ${theme === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'}`
+          }}>
+            <Nav className="flex-column gap-2">
+              <Button 
+                variant="primary" 
+                className="rounded-pill py-2 shadow-sm mb-4 glass-card"
+                style={{ border: "none" }}
+                as={Link}
+                to="/avis"
+              >
+                <FontAwesomeIcon icon={faPlus} className="me-2" />
+                {translations[language].newAvis}
+              </Button>
+              
+              {[
+                { icon: faChartBar, text: translations[language].dashboard, path: "/dashboard" },
+                { icon: faComment, text: translations[language].avisManagement, path: "/avis" },
+                { icon: faUserMd, text: translations[language].personnelManagement, path: "/users" },
+                { icon: faClipboardList, text: translations[language].reportsStatistics, path: "/reports" }
+              ].map((item, index) => (
+                <Nav.Link 
+                  key={index}
+                  as={Link}
+                  to={item.path}
+                  className="d-flex align-items-center gap-2 p-3 rounded hover-effect"
+                  style={{ 
+                    color: currentTheme.text,
+                    background: location.pathname === item.path ? currentTheme.primary + '20' : 'transparent'
+                  }}
+                >
+                  <FontAwesomeIcon icon={item.icon} className="fs-5" />
+                  <span className="fs-5">{item.text}</span>
+                </Nav.Link>
+              ))}
+            </Nav>
+          </Col>
+
+          <Col md={9} className="p-4">
+            <Routes>
+              <Route path="/" element={<Navigate to="/dashboard" replace />} />
+              
+              <Route 
+                path="/dashboard" 
+                element={
+                  <>
+                    <DashboardStats stats={stats} currentTheme={currentTheme} language={language} />
+                    <AvisManagement 
+                      avis={avis}
+                      currentTheme={currentTheme}
+                      language={language}
+                      loading={loading}
+                    />
+                  </>
+                } 
+              />
+              
+              <Route 
+                path="/avis" 
+                element={
+                  <AvisManagement 
+                    avis={avis}
+                    currentTheme={currentTheme}
+                    language={language}
+                    loading={loading}
+                  />
+                } 
+              />
+              
+              <Route 
+                path="/users" 
+                element={
+                  <UserManagement 
+                    currentTheme={currentTheme}
+                    language={language}
+                  />
+                } 
+              />
+
+              <Route 
+                path="/reports" 
+                element={
+                  <Reports 
+                    currentTheme={currentTheme}
+                    language={language}
+                  />
+                } 
+              />
+
+              <Route 
+                path="/profil" 
+                element={
+                  <Profil 
+                    currentTheme={currentTheme} 
+                    language={language} 
+                  />
+                } 
+              />
+            </Routes>
+          </Col>
+        </Row>
+      </Container>
+
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600&display=swap');
+
+        body {
+          font-family: 'Montserrat', sans-serif;
+          transition: all 0.3s ease;
+        }
+
+        .glass-card {
+          background: ${currentTheme.cardBackground};
+          backdrop-filter: blur(12px);
+          border: 1px solid ${theme === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'} !important;
+          transition: all 0.3s ease;
+        }
+
+        .hover-effect {
+          transition: all 0.3s ease;
+          cursor: pointer;
+        }
+
+        .hover-effect:hover {
+          background: ${theme === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)'};
+          transform: translateX(8px);
+        }
+
+        .hover-transform {
+          transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .hover-transform:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 4px 15px rgba(0,0,0,0.1) !important;
+        }
+
+        .icon-wrapper {
+          width: 50px;
+          height: 50px;
+          border-radius: 12px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          transition: all 0.3s ease;
+        }
+
+        .table {
+          --bs-table-bg: transparent;
+          --bs-table-color: ${currentTheme.text};
+          border-color: ${theme === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'};
+        }
+
+        .header-container {
+          border-radius: 16px;
+          box-shadow: 0px 4px 12px rgba(0,0,0,0.1);
+        }
+      `}</style>
     </div>
   );
 };
 
-// ✅ Main Component
-const AdminDashboard = () => {
-  const [theme, setTheme] = useState("light");
-  const [showSettings, setShowSettings] = useState(false);
+const App = () => (
+  <Router>
+    <AdminDashboard />
+  </Router>
+);
 
-  const toggleTheme = () => {
-    const newTheme = theme === "dark" ? "light" : "dark";
-    setTheme(newTheme);
-    document.body.className = newTheme === "dark" ? "theme-dark" : "theme-light";
-  };
-  
-
-  const handleSliderChange = (event, newValue) => {
-    setSliderValue(newValue);
-    // Appliquer la taille de police à l'ensemble de la page
-    document.documentElement.style.fontSize = `${newValue}%`;
-  };
-   
-
-  // Fonction pour la déconnexion
-  const handleLogout = () => {
-    // Logique de déconnexion (par exemple, réinitialiser le token d'authentification)
-    alert("Déconnexion réussie!");
-  };
-
-  return (
-    <div className={`page-container ${theme === "dark" ? "dark-theme" : "light-theme"}`}>
-       <Decor theme={theme} primaryColor={primaryColor} /> {/* ✅ Passé correctement */}
-      <Sidebar theme={theme} />
-      <Header theme={theme} toggleTheme={toggleTheme} onLogout={handleLogout} />
-      <main className={`content ${theme === "dark" ? "dark-content" : "light-content"}`}>
-        <GestionPersonnel />
-      
-        <AvisList />
-      </main>
-    </div>
-  );
-  
-  
-};
-  
-
-
-ReactDOM.createRoot(document.getElementById("app")).render(<AdminDashboard />);
+ReactDOM.createRoot(document.getElementById("app")).render(
+  <React.StrictMode>
+    <App />
+  </React.StrictMode>
+);

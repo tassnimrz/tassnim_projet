@@ -19,16 +19,15 @@ const Sidebar = () => {
         <Nav.Link className="text-white" onClick={() => window.location.href = "/Acceuill"}>
           <FontAwesomeIcon icon={faHome} className="me-2" /> {collapsed ? "" : "Accueil"}
         </Nav.Link>
-        <Nav.Link className="text-white" onClick={() => window.location.href = "/rendezvous/create"}>
-  <FontAwesomeIcon icon={faCalendarAlt} className="me-2" /> {collapsed ? "" : "Créer un Rendez-vous"}
-</Nav.Link>
+        <Nav.Link className="text-white" onClick={() => window.location.href = "/rendez-vous"}>
+          <FontAwesomeIcon icon={faCalendarAlt} className="me-2" /> {collapsed ? "" : "Créer un Rendez-vous"}
+        </Nav.Link>
         <Nav.Link className="text-white" onClick={() => window.location.href = "/dossier-medical/{id}"}>
           <FontAwesomeIcon icon={faFolderOpen} className="me-2" /> {collapsed ? "" : "Mon Dossier Médical"}
         </Nav.Link>
         <Nav.Link className="text-white" onClick={(ordonnanceId) => window.location.href = `/ordonnances/${ordonnanceId}`}>
-  <FontAwesomeIcon icon={faFilePrescription} className="me-2" /> {collapsed ? "" : "Mon Ordonnance"}
-</Nav.Link>
-
+          <FontAwesomeIcon icon={faFilePrescription} className="me-2" /> {collapsed ? "" : "Mon Ordonnance"}
+        </Nav.Link>
         <Nav.Link className="text-white" onClick={() => window.location.href = "/suivi-sante"}>
           <FontAwesomeIcon icon={faHeartbeat} className="me-2" /> {collapsed ? "" : "Suivi Santé"}
         </Nav.Link>

@@ -1,6 +1,7 @@
 import { defineConfig } from 'vite';
 import laravel from 'laravel-vite-plugin';
 
+
 export default defineConfig({
     plugins: [
       laravel({
@@ -11,7 +12,13 @@ export default defineConfig({
             'resources/js/admin.jsx'  ,
             'resources/js/services.jsx',
             'resources/js/reports.jsx',
-            'resources/js/Profil.jsx'
+            'resources/js/Profil.jsx',
+            'resources/js/User.jsx',
+            'resources/js/fiche-patient.jsx',
+             'resources/js/fiche-index.jsx',
+             'resources/js/PlanningList.jsx',
+             'resources/js/PrendreRendezVous.jsx',
+             'resources/js/voirrendezvous.jsx',
         ],
         refresh: true,
     }),
@@ -22,6 +29,7 @@ export default defineConfig({
       },
       host: '127.0.0.1',
         
-      port: 5173,
+      port: 8000,
     }
+    
 });

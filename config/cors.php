@@ -14,20 +14,14 @@ return [
     | To learn more: https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS
     |
     */
+  
+        'paths' => ['api/*', 'sanctum/csrf-cookie', 'rendez-vous/*'],
 
-    'paths' => ['*'],
-
-    'allowed_methods' => ['*'],
-'allowed_origins' => ['*'],
-
-    'allowed_origins_patterns' => [],
-
-    'allowed_headers' => ['*'],
-
-    'exposed_headers' => [],
-
-    'max_age' => 0,
-
-    'supports_credentials' => true,
-
-];
+        'allowed_methods' => ['*'],
+        'allowed_origins' => ['http://127.0.0.1:8000'], // ❌ pas de '*'
+        'allowed_origins_patterns' => [],
+        'allowed_headers' => ['*'],
+        'exposed_headers' => [],
+        'max_age' => 0,
+        'supports_credentials' => true, // ✅ très important pour les sessions
+    ];

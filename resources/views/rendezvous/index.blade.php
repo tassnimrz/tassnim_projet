@@ -1,43 +1,25 @@
-@extends('layouts.app')
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prendre un rendez-vous</title>
 
-@section('content')
-    <div class="container">
-        <h1>Mes Rendez-vous</h1>
+    <!-- Vite pour React -->
+    @viteReactRefresh
+    @vite('resources/js/PrendreRendezVous.jsx')
+    <meta name="csrf-token" content="{{ csrf_token() }}">
 
-        @if (session('success'))
-            <div class="alert alert-success">
-                {{ session('success') }}
-            </div>
-        @endif
+    <!-- Bootstrap -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+    @php
+        $patient = Auth::user(); // Le patient connecté via session Laravel
+    @endphp
 
-        @if (session('error'))
-            <div class="alert alert-danger">
-                {{ session('error') }}
-            </div>
-        @endif
-
-        <table class="table">
-            <thead>
-                <tr>
-                    <th>Date</th>
-                    <th>Motif</th>
-                    <th>Statut</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach($rendezvous as $rendezVous)
-                    <tr>
-                        <td>{{ $rendezVous->date_rendez_vous }}</td>
-                        <td>{{ $rendezVous->motif }}</td>
-                        <td>{{ $rendezVous->statut }}</td>
-                        <td>
-                            <a href="{{ route('rendezvous.show', $rendezVous->id) }}" class="btn btn-info">Détails</a>
-                        </td>
-                    </tr>
-                @endforeach
-            </tbody>
-        </table>
-        <a href="{{ route('rendezvous.create') }}" class="btn btn-primary">Prendre un nouveau rendez-vous</a>
+    <!-- Point de montage React avec les données du patient -->
+    <div id="root" data-patient='@json($patient)'>
     </div>
-@endsection
+</body>
+</html>

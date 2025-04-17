@@ -22,6 +22,7 @@ const Register = () => {
   const [activeForm, setActiveForm] = useState("create"); // "create", "update"
   const [usersList, setUsersList] = useState([]); // State to store the users list
   const [selectedUser, setSelectedUser] = useState(null); // For selecting user in "update"
+  const [selectedRole, setSelectedRole] = useState("all"); // For filtering users by role
 
   // Fonction pour gérer les changements dans les champs
   const handleChange = (e) => {
@@ -97,12 +98,20 @@ const Register = () => {
   // Fonction pour récupérer la liste des utilisateurs
   const fetchUsers = async () => {
     try {
-      const response = await axios.get("http://127.0.0.1:8000/api/users");
-      setUsersList(response.data);
+        const response = await axios.get("http://127.0.0.1:8000/api/users");
+        console.log("Données des utilisateurs reçues :", response.data);
+        
+        // Vérification de la structure des données
+        response.data.forEach(user => {
+            console.log(`Utilisateur: ${user.name}, Données complètes:`, user);
+        });
+
+        setUsersList(response.data);
     } catch (error) {
-      console.error("Erreur lors de la récupération des utilisateurs:", error.response?.data || error.message);
+        console.error("Erreur lors de la récupération des utilisateurs:", error.response?.data || error.message);
     }
-  };
+};
+
 
   // Utiliser useEffect pour charger la liste des utilisateurs lors de la sélection de "Modifier"
   useEffect(() => {
@@ -133,6 +142,16 @@ const Register = () => {
       });
     }
   }, [selectedUser]);
+  
+
+  const filteredUsers = selectedRole === "all" 
+  ? usersList 
+  : usersList.filter(user => user.roles && user.roles.includes(selectedRole));
+
+usersList.forEach(user => {
+  console.log(`Utilisateur: ${user.name}, Rôles:`, user.roles ? user.roles : "Aucun rôle défini");
+});
+
 
   return (
     <motion.div className="d-flex align-items-center justify-content-center min-vh-100 position-relative">
@@ -231,12 +250,27 @@ const Register = () => {
           </motion.form>
         )}
 
-        {/* Affichage de la liste des utilisateurs pour "Modifier" */}
+        {/* Affichage de la liste des utilisateurs filtrée par rôle */}
         {activeForm === "update" && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.5 }}>
             <h3>Liste des utilisateurs</h3>
+
+            {/* Filtrage par rôle */}
+            <div className="mb-3">
+              <select
+                value={selectedRole}
+                onChange={(e) => setSelectedRole(e.target.value)}
+                className="form-control"
+              >
+                <option value="all">Tous</option>
+                <option value="patient">Patient</option>
+                <option value="doctor">Docteur</option>
+                <option value="admin">Administrateur</option>
+              </select>
+            </div>
+
             <ul className="list-group">
-              {usersList.map((user) => (
+              {filteredUsers.map((user) => (
                 <li key={user.id} className="list-group-item" style={{ backgroundColor: "transparent", border: "1px solid #ccc" }}>
                   {user.name} - {user.email}
                   <button
