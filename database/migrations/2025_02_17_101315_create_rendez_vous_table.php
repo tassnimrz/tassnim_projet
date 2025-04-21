@@ -20,6 +20,7 @@ return new class extends Migration
             $table->integer('position');
             $table->integer('priorite');
             $table->timestamps();
+            $table->dateTime('heure_rendez_vous')->nullable();
         });
     }
 
@@ -30,5 +31,6 @@ return new class extends Migration
     public function down(): void
     {
         Schema::dropIfExists('rendez_vous');
+          $table->dropColumn('heure_rendez_vous');
     }
 };

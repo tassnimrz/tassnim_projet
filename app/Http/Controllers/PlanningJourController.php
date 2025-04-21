@@ -68,5 +68,53 @@ public function destroy($id)
 
     return response()->json(['message' => 'Planning supprimé avec succès']);
 }
+public function suggestionsIntelligentes(Request $request)
+{
+    $specialite = $request->input('specialite'); // Optionnel
+    $dateSouhaitee = $request->input('date') ?? Carbon::now()->toDateString();
+
+    // On prend les 5 prochains jours à partir d'aujourd'hui
+    $plannings = PlanningJour::with(['medecin', 'rendezVous'])
+        ->whereDate('date', '>=', $dateSouhaitee)
+        ->orderBy('date')
+        ->get();
+
+    $suggestions = [];
+
+    foreach ($plannings as $planning) {
+        $nbConfirmes = $planning->rendezVous->where('statut', 'confirmé')->count();
+        $nbAttente = $planning->rendezVous->where('statut', 'attente')->count();
+
+        $placesRestantes = $planning->nombre_max_patients - $nbConfirmes;
+        $attenteRestantes = $planning->nombre_max_attente - $nbAttente;
+
+        // Filtres intelligents
+        if ($placesRestantes > 0 || $attenteRestantes > 0) {
+            if ($specialite && $planning->medecin->specialite !== $specialite) {
+                continue;
+            }
+
+            $suggestions[] = [
+                'id' => $planning->id,
+                'date' => $planning->date,
+                'heure_debut' => $planning->heure_debut,
+                'heure_fin' => $planning->heure_fin,
+                'medecin' => [
+                    'id' => $planning->medecin->id,
+                    'name' => $planning->medecin->name,
+                    'specialite' => $planning->medecin->specialite ?? 'Généraliste',
+                ],
+                'places_dispo' => $placesRestantes,
+                'places_attente' => $attenteRestantes,
+            ];
+        }
+    }
+
+    return response()->json([
+        'message' => 'Suggestions de créneaux disponibles',
+        'date_depart' => $dateSouhaitee,
+        'resultats' => $suggestions
+    ]);
+}
 }
 

@@ -23,7 +23,7 @@ use App\Http\Controllers\ServiceController;
 
 Route::post('/register', [RegisteredUserController::class, 'store']);  // La route pour l'inscription
 
-
+Route::get('/patient-stats-daily', [RegisteredUserController::class, 'getDailyPatientStats']);
 
 Route::get('/users', function () {
     return User::all();  // Récupère tous les utilisateurs
@@ -84,6 +84,7 @@ use App\Http\Controllers\RendezVousController;
 Route::get('/medecins', [RegisteredUserController::class, 'getmedecin']);
 
 
+Route::get('/rendezvous/statistiques/journalier', [RendezVousController::class, 'tauxRendezVousJournalier']);
 
 // Route pour créer un rendez-vous via API
 Route::middleware('auth:sanctum')->group(function () {
@@ -115,3 +116,29 @@ Route::delete('/plannings/{id}', [PlanningJourController::class, 'destroy']);
 
 Route::get('/tous-rendezvous', [RendezVousController::class, 'index']);
 
+use App\Models\RendezVous;
+Route::get('/tous-rendezvous', function () {
+    $rendezvous = \App\Models\RendezVous::with(['planningJour', 'medecin'])->get();
+    return response()->json($rendezvous);
+});
+Route::get('/tous-rendezvous', function () {
+    $rendezvous = \App\Models\RendezVous::with(['planningJour', 'medecin', 'patient'])->get();
+
+    return response()->json($rendezvous);
+});
+
+
+Route::get('/prochain-rdv', [RendezVousController::class, 'prochainRdv']);
+Route::middleware('auth')->get('/api/capsule-sante', [RendezVousController::class, 'capsuleSante']);
+
+
+
+
+
+
+
+
+
+
+Route::get('/rendezvous/stats-pour-chatbot', [RendezVousController::class, 'statsPourChatbot']);
+Route::get('/plannings/suggestions', [PlanningJourController::class, 'suggestionsIntelligentes']);

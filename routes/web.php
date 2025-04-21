@@ -8,7 +8,12 @@ use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
 use App\Http\Controllers\UserController;
+use App\Http\Controllers\SmsController;
+
+Route::get('/send-test-sms', [SmsController::class, 'sendTestSms']);
 use App\Http\Controllers\RendezVousController;
+
+Route::get('/mes-rendez-vous', [RendezVousController::class, 'mesRendezVousPageblade'])->name('mesRendezVous');
 
 
 Route::get('/voir-rendezvous', function () {
@@ -28,6 +33,7 @@ Route::post('/rendezvous', [RendezVousController::class, 'store'])->name('rendez
 
 
 use App\Http\Controllers\Auth\RegisteredUserController;
+Route::get('/patient-stats', [RegisteredUserController::class, 'getPatientStats']);
 Route::get('/api/patients', [RegisteredUserController::class, 'getPatients']);
 Route::post('/register', [RegisteredUserController::class, 'store']);
 Route::post('/users/create', [RegisteredUserController::class, 'store']);

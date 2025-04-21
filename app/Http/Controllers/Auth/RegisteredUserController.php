@@ -243,5 +243,16 @@ public function getmedecin(Request $request)
 
     return response()->json($medecins);
 }
+public function getDailyPatientStats()
+{
+    $stats = User::selectRaw('DATE(created_at) as date, COUNT(*) as count')
+        ->where('is_verified', true)
+        ->whereHas('roles', function ($query) {
+            $query->where('name', 'patient');
+        })
+        ->groupByRaw('DATE(created_at)')
+        ->orderByRaw('DATE(created_at)')
+        ->get();
 
-}
+    return response()->json($stats);
+}}
