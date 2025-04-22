@@ -24,6 +24,9 @@ export default defineConfig({
         refresh: true,
     }),
     ],
+    optimizeDeps: {
+      include: ['leaflet']
+    },
     server: {
       proxy: {
         '/api': 'http://127.0.0.1:8000', // Proxy pour API Laravel

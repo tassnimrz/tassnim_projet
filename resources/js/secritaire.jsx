@@ -1,5 +1,10 @@
 import React, { useState, useEffect, createContext } from 'react';
 import { createRoot } from 'react-dom/client';
+import PatientChart from './PatientChart';
+import PatientMap from './PatientMap';
+import AlerteSanitaire from './AlerteSanitaire';
+import TauxRemplissage from './TauxRemplissage';
+import DameIAContextuelle from './DameIAContextuelle';
 import {
   BrowserRouter,
   NavLink,
@@ -116,6 +121,7 @@ function MedicalChatbot({ theme }) {
   };
 
   return (
+    
     <div className="card shadow" style={{ 
       backgroundColor: theme === 'dark' ? '#1e293b' : 'white',
       height: '500px',
@@ -139,6 +145,7 @@ function MedicalChatbot({ theme }) {
         padding: '15px',
         backgroundColor: theme === 'dark' ? '#1e293b' : 'white'
       }}>
+    
         {messages.map((msg, i) => (
           <div key={i} className={`mb-3 d-flex ${msg.sender === 'user' ? 'justify-content-end' : 'justify-content-start'}`}>
             <div style={{
@@ -253,53 +260,55 @@ function MedicalChatbot({ theme }) {
               'Envoyer'
             )}
           </button>
+
         </div>
       </div>
+      
     </div>
   );
 }
 
 function Sidebar({ isCollapsed, theme }) {
   const sidebarStyle = {
-    background: theme === 'dark' ? 'rgba(15, 23, 42, 0.9)' : 'rgba(248, 250, 252, 0.9)',
+    background: 'rgba(15, 23, 42, 0.9)',
     backdropFilter: 'blur(10px)',
-    color: theme === 'dark' ? 'white' : '#1e293b',
+    color: 'white',
     boxShadow: '0 0 30px rgba(0,0,0,0.2)'
   };
 
   return (
     <div className={`sidebar ${isCollapsed ? 'collapsed' : ''}`} style={sidebarStyle}>
-      <h3 className="fw-bold text-center mb-4 pt-3" style={{ color: '#3b82f6' }}>
+      <h3 className="fw-bold text-center mb-4 pt-3" style={{ color: '#60a5fa' }}>
         {isCollapsed ? '🩺' : 'MedCarePro'}
       </h3>
       <ul className="nav flex-column">
         <li className="nav-item mb-2">
           <NavLink to="/" className="nav-link-custom" end>
-            <HouseDoor className="me-2" style={{ color: '#3b82f6' }} /> 
+            <HouseDoor className="me-2" style={{ color: '#93c5fd' }} /> 
             {!isCollapsed && 'Dashboard'}
           </NavLink>
         </li>
         <li className="nav-item mb-2">
           <NavLink to="/patients" className="nav-link-custom">
-            <People className="me-2" style={{ color: '#3b82f6' }} /> 
+            <People className="me-2" style={{ color: '#93c5fd' }} /> 
             {!isCollapsed && 'Patients'}
           </NavLink>
         </li>
         <li className="nav-item mb-2">
           <NavLink to="/rdvs" className="nav-link-custom">
-            <CalendarCheck className="me-2" style={{ color: '#3b82f6' }} /> 
+            <CalendarCheck className="me-2" style={{ color: '#93c5fd' }} /> 
             {!isCollapsed && 'Rendez-vous'}
           </NavLink>
         </li>
         <li className="nav-item mb-2">
           <NavLink to="/fiche-patient" className="nav-link-custom">
-            <FileEarmarkMedical className="me-2" style={{ color: '#3b82f6' }} /> 
+            <FileEarmarkMedical className="me-2" style={{ color: '#93c5fd' }} /> 
             {!isCollapsed && 'Fiche patient'}
           </NavLink>
         </li>
         <li className="nav-item mb-2">
           <NavLink to="/billing" className="nav-link-custom">
-            <Clipboard className="me-2" style={{ color: '#3b82f6' }} /> 
+            <Clipboard className="me-2" style={{ color: '#93c5fd' }} /> 
             {!isCollapsed && 'Facturation'}
           </NavLink>
         </li>
@@ -428,7 +437,7 @@ function StatsCard({ icon, title, value, trend, theme, onClick }) {
       <div className="card-body">
         <div className="row align-items-center">
           <div className="col">
-            <div className="text-xs font-weight-bold text-uppercase mb-1" style={{ color: '#3b82f6' }}>
+            <div className="text-xs font-weight-bold text-uppercase mb-1" style={{ color: '#60a5fa' }}>
               {title}
             </div>
             <div className="h5 mb-0 font-weight-bold">
@@ -468,6 +477,20 @@ function StatsCard({ icon, title, value, trend, theme, onClick }) {
 }
 
 function DashboardSecretary({ theme }) {
+  const [showDameIA, setShowDameIA] = useState(false);
+const [messageDame, setMessageDame] = useState('');
+
+  
+  const [dailyPatientData, setDailyPatientData] = useState([]);
+  const [showAvisStats, setShowAvisStats] = useState(false);
+
+  const [showRdvStats, setShowRdvStats] = useState(false);
+  const [rdvStatsData, setRdvStatsData] = useState(null);
+  const [showPatientMap, setShowPatientMap] = useState(false);
+  const [patients, setPatients] = useState([]);
+  const [showTauxRemplissage, setShowTauxRemplissage] = useState(false);
+
+
   const [stats, setStats] = useState([
     { 
       icon: <People size={24} />, 
@@ -489,15 +512,15 @@ function DashboardSecretary({ theme }) {
         icon: <GraphUp size={12} />
       } 
     },
-    { 
-      icon: <Capsule size={24} />, 
-      title: "Médicaments en stock", 
-      value: "Chargement...", 
-      trend: { 
-        text: "", 
+    {
+      icon: <GraphUp size={24} />,
+      title: "Taux de remplissage",
+      value: "Chargement...",
+      trend: {
+        text: "",
         color: "info",
         icon: <Activity size={12} />
-      } 
+      }
     },
     { 
       icon: <Truck size={24} />, 
@@ -513,52 +536,182 @@ function DashboardSecretary({ theme }) {
 
   const [appointments, setAppointments] = useState([]);
   const [doctors, setDoctors] = useState([]);
+  const [nextAppointment, setNextAppointment] = useState(null);
+  const [avisStats, setAvisStats] = useState(null);
   const [showPatientStats, setShowPatientStats] = useState(false);
   const [monthlyPatientData, setMonthlyPatientData] = useState([]);
   const [loadingPatientStats, setLoadingPatientStats] = useState(false);
 
   useEffect(() => {
-    // Charger les données initiales
-    const fetchData = async () => {
-      try {
-        const [patientsRes, rdvsRes, planningsRes, avisRes] = await Promise.all([
-          axios.get('http://localhost:8000/api/patients'),
-          axios.get('http://localhost:8000/api/rendezvous/tous'),
-          axios.get('http://localhost:8000/api/plannings'),
-          axios.get('http://localhost:8000/api/avis/stats')
-        ]);
+    // Charger le nombre de patients
+    axios.get('http://localhost:8000/api/patients')
+      .then(response => {
+        const patientCount = response.data.length;
+        setStats(prev => prev.map(stat => 
+          stat.title === "Patients enregistrés" 
+            ? { 
+                ...stat, 
+                value: patientCount.toLocaleString(), 
+                trend: { 
+                  text: `+${Math.floor(patientCount * 0.1)} ce mois-ci`, 
+                  color: "success",
+                  icon: <GraphUp size={12} />
+                } 
+              } 
+            : stat
+        ));
+      })
+      .catch(error => {
+        console.error("Erreur patients:", error);
+        activerDameIA("Erreur lors du chargement des patients. Vérifiez votre connexion.");
+      });
+      
 
-        // Mettre à jour les statistiques
-        const patientCount = patientsRes.data.length;
-        const todayAppointments = rdvsRes.data.filter(rdv => 
-          new Date(rdv.planning_jour.date).toDateString() === new Date().toDateString()
-        );
+    // Charger les rendez-vous du jour
+    axios.get('http://localhost:8000/api/rendezvous/tous')
+      .then(response => {
+        const todayAppointments = response.data.filter(rdv => {
+
+          const rdvDate = new Date(rdv.planning_jour.date).toDateString();
+          const today = new Date().toDateString();
+          return rdvDate === today;
+        });
         
-        setStats(prev => prev.map(stat => {
-          if (stat.title === "Patients enregistrés") {
-            return {
-              ...stat,
-              value: patientCount.toLocaleString(),
-              trend: { 
-                text: `+${Math.floor(patientCount * 0.1)} ce mois-ci`, 
-                color: "success",
+        const yesterday = new Date();
+        yesterday.setDate(yesterday.getDate() - 1);
+        const yesterdayAppointments = response.data.filter(rdv => {
+          const rdvDate = new Date(rdv.planning_jour.date).toDateString();
+          return rdvDate === yesterday.toDateString();
+        });
+        // 🧮 Calcul du taux de remplissage
+let totalMax = 0;
+let totalConfirmes = 0;
+
+response.data.forEach(rdv => {
+  const dateRdv = new Date(rdv.planning_jour.date).toDateString();
+  const today = new Date().toDateString();
+
+  if (dateRdv === today) {
+    totalMax += rdv.planning_jour?.nombre_max_patients || 0;
+    if (rdv.statut === "confirmé") {
+      totalConfirmes++;
+    }
+  }
+});
+
+const taux = totalMax > 0 ? Math.round((totalConfirmes / totalMax) * 100) : 0;
+
+// 📊 Mettre à jour la carte
+setStats(prev => prev.map(stat =>
+  stat.title === "Taux de remplissage"
+    ? {
+        ...stat,
+        value: `${taux}%`,
+        trend: {
+          text: taux === 0 ? "Aucun patient" : taux === 100 ? "Complet" : "Encore des places",
+          color: taux === 100 ? 'success' : 'info',
+          icon: taux === 100 ? <GraphUp size={12} /> : <Activity size={12} />
+        }
+      }
+    : stat
+));
+
+// 🔊 Lecture vocale
+if ('speechSynthesis' in window) {
+  const synth = window.speechSynthesis;
+  const utterance = new SpeechSynthesisUtterance();
+
+  if (taux === 0) {
+    utterance.text = "Aucun patient enregistré aujourd'hui.";
+  } else {
+    utterance.text = `Le taux de remplissage aujourd'hui est de ${taux} pour cent.`;
+  }
+
+  utterance.lang = "fr-FR";
+  synth.speak(utterance);
+}
+
+        
+        const pourcentageEvolution = yesterdayAppointments.length === 0
+          ? 100
+          : Math.round(((todayAppointments.length - yesterdayAppointments.length) / yesterdayAppointments.length) * 100);
+
+        setStats(prev => prev.map(stat => 
+          stat.title === "Rendez-vous aujourd'hui" 
+            ? { 
+                ...stat, 
+                value: todayAppointments.length.toString(), 
+                trend: { 
+                  text: `${pourcentageEvolution >= 0 ? '+' : ''}${pourcentageEvolution}%`,
+                  color: pourcentageEvolution >= 0 ? 'rose' : 'blue',
+                  icon: (
+                    pourcentageEvolution >= 0 
+                      ? <GraphUp size={12} color="#ec4899" /> 
+                      : <GraphUp size={12} style={{ transform: 'rotate(180deg)', color: '#3b82f6' }} />
+                  )
+                } 
+              } 
+            : stat
+        ));
+
+        // Prochain rendez-vous
+        const upcoming = response.data
+          .filter(rdv => new Date(rdv.planning_jour.date) >= new Date())
+          .sort((a, b) => new Date(a.planning_jour.date) - new Date(b.planning_jour.date))[0];
+        
+        if (upcoming) {
+          setNextAppointment({
+            date: upcoming.planning_jour.date,
+            heure: upcoming.planning_jour.heure_debut,
+            medecin: upcoming.medecin?.name || 'Dr. Inconnu',
+            conseil: "Préparez-vous bien pour votre rendez-vous. Buvez de l'eau et arrivez à l'heure."
+          });
+        }
+      })
+      .catch(error => console.error("Erreur rendez-vous:", error));
+
+// Charger les stats des avis
+axios.get('http://localhost:8000/api/avis/stats')
+  .then(response => {
+    const { tauxSatisfaction, tauxMecontentement, totalAvis } = response.data;
+
+    // 🔊 Parle si supporté
+    if ('speechSynthesis' in window) {
+      const utterance = new SpeechSynthesisUtterance();
+      utterance.text = `Le taux de satisfaction est de ${Math.round(tauxSatisfaction)} pour cent`;
+      utterance.lang = 'fr-FR';
+      speechSynthesis.speak(utterance);
+    }
+
+    // 🧠 Met à jour la carte
+    setStats(prev =>
+      prev.map(stat =>
+        stat.title === "Ambulances disponibles"
+          ? {
+              title: "Taux de satisfaction",
+              icon: <GraphUp size={24} />,
+              value: `${Math.round(tauxSatisfaction)}%`,
+              trend: {
+                text: `Basé sur ${totalAvis} avis`,
+                color: tauxSatisfaction > 70 ? 'success' : 'rose',
                 icon: <GraphUp size={12} />
               }
-            };
-          } else if (stat.title === "Rendez-vous aujourd'hui") {
-            return {
-              ...stat,
-              value: todayAppointments.length.toString()
-            };
-          }
-          return stat;
-        }));
+            }
+          : stat
+      )
+    );
+  })
+  .catch(error => console.error("Erreur avis :", error));
 
-        // Mettre à jour les médecins
+
+
+    // Charger les médecins
+    axios.get('http://localhost:8000/api/plannings')
+      .then(response => {
         const uniqueDoctors = [];
         const doctorIds = new Set();
         
-        planningsRes.data.forEach(planning => {
+        response.data.forEach(planning => {
           if (planning.medecin && !doctorIds.has(planning.medecin.id)) {
             doctorIds.add(planning.medecin.id);
             uniqueDoctors.push({
@@ -573,9 +726,20 @@ function DashboardSecretary({ theme }) {
         });
         
         setDoctors(uniqueDoctors);
+      })
+      .catch(error => console.error("Erreur médecins:", error));
 
-        // Mettre à jour les rendez-vous à venir
-        const upcomingAppointments = rdvsRes.data
+    // Charger les statistiques des avis
+    axios.get('http://localhost:8000/api/avis/stats')
+      .then(response => {
+        setAvisStats(response.data);
+      })
+      .catch(error => console.error("Erreur avis:", error));
+
+    // Rendez-vous à venir pour l'affichage
+    axios.get('http://localhost:8000/api/rendezvous/tous')
+      .then(response => {
+        const upcomingAppointments = response.data
           .filter(rdv => new Date(rdv.planning_jour.date) >= new Date())
           .sort((a, b) => new Date(a.planning_jour.date) - new Date(b.planning_jour.date))
           .slice(0, 4)
@@ -587,21 +751,114 @@ function DashboardSecretary({ theme }) {
           }));
         
         setAppointments(upcomingAppointments);
+      })
+      .catch(error => console.error("Erreur rendez-vous:", error));
+      // Conseil IA du jour entre 8h et 12h
+setTimeout(() => {
+  const heure = new Date().getHours();
+  if (heure >= 8 && heure <= 12) {
+    genererConseilIA();
+  }
+}, 2000);
 
-      } catch (error) {
-        console.error("Erreur lors du chargement des données:", error);
-      }
-    };
-
-    fetchData();
   }, []);
+
+  useEffect(() => {
+    if (showPatientStats) {
+      setLoadingPatientStats(true);
+      axios.get('http://localhost:8000/api/patient-stats-daily')
+        .then(response => {
+          const transformed = response.data.map((item, index, array) => {
+            const previousCount = index > 0 ? array[index - 1].count : 0;
+            const change = previousCount === 0 ? 0 : Math.round(((item.count - previousCount) / previousCount) * 100);
+            return {
+              month: new Date(item.date).toLocaleDateString('fr-FR', {
+                weekday: 'short',
+                day: '2-digit',
+                month: 'short'
+              }),
+              count: item.count,
+              change
+            };
+          });
+  
+          setMonthlyPatientData(transformed);
+          setLoadingPatientStats(false);
+        })
+        .catch(error => {
+          console.error("Erreur stats patients:", error);
+          setLoadingPatientStats(false);
+        });
+    }
+  }, [showPatientStats]);
 
   const handlePatientStatClick = () => {
     setShowPatientStats(true);
   };
+  const activerDameIA = (message) => {
+    const genererConseilIA = () => {
+      if (!avisStats || !appointments || stats.length === 0) return;
+    
+      const messages = [];
+    
+      const tauxSatisfaction = avisStats.tauxSatisfaction || 0;
+      const tauxRemplissage = parseInt(stats.find(s => s.title === "Taux de remplissage")?.value) || 0;
+      const rdvsDemain = appointments.filter(rdv => {
+        const dateRdv = new Date();
+        dateRdv.setDate(dateRdv.getDate() + 1);
+        const rdvDate = new Date(rdv.time);
+        return rdvDate.toDateString() === dateRdv.toDateString();
+      });
+    
+      // Satisfaction
+      if (tauxSatisfaction >= 80) {
+        messages.push(`Taux de satisfaction : ${tauxSatisfaction}%. Très bon travail !`);
+      } else if (tauxSatisfaction < 60) {
+        messages.push(`Attention, le taux de satisfaction est bas (${tauxSatisfaction}%). Consultez les avis récents.`);
+      }
+    
+      // Remplissage
+      if (tauxRemplissage >= 90) {
+        messages.push(`Planning très chargé aujourd’hui (${tauxRemplissage}%). Vous pourriez ajouter un médecin.`);
+      } else if (tauxRemplissage <= 50) {
+        messages.push(`Beaucoup de créneaux libres aujourd’hui (${tauxRemplissage}%). Relancez vos patients.`);
+      }
+    
+      // RDV demain
+      if (rdvsDemain.length === 0) {
+        messages.push(`Aucun rendez-vous pour demain. C’est peut-être le moment de relancer les patients.`);
+      }
+    
+      if (messages.length === 0) {
+        messages.push("Tout semble stable aujourd’hui. Vous pouvez vous concentrer sur la gestion interne.");
+      }
+    
+      const messageFinal = messages[Math.floor(Math.random() * messages.length)];
+      activerDameIA("Bonjour ! " + messageFinal);
+    };
+   
+    
+    setMessageDame(message);
+    setShowDameIA(true);
+    setTimeout(() => {
+      setShowDameIA(false);
+    }, 10000); // disparaît après 10s
+  };
+  
+  const handleRdvTodayClick = () => {
+    axios.get('http://localhost:8000/api/patients')
+      .then(response => {
+        setPatients(response.data);
+        setShowPatientMap(true);
+      })
+      .catch(error => console.error("Erreur chargement patients:", error));
+  };
+  
 
   return (
-    <div className="container-fluid" style={{ paddingTop: '20px' }}>
+    <div className="container-fluid">
+     
+
       <div className="d-sm-flex align-items-center justify-content-between mb-4">
         <h1 className="h3 mb-0" style={{ color: theme === 'dark' ? 'white' : '#1e293b' }}>Tableau de bord</h1>
         <button className={`d-none d-sm-inline-block btn btn-sm shadow-sm ${theme === 'dark' ? 'bg-blue-600 hover:bg-blue-700' : 'bg-blue-500 hover:bg-blue-600'} text-white`}>
@@ -618,10 +875,18 @@ function DashboardSecretary({ theme }) {
               title={stat.title} 
               value={stat.value} 
               trend={stat.trend}
-              theme={theme}
-              onClick={
-                stat.title === "Patients enregistrés" ? handlePatientStatClick : undefined
-              }
+           onClick={
+  stat.title === "Patients enregistrés"
+    ? handlePatientStatClick
+    : stat.title === "Rendez-vous aujourd'hui"
+    ? handleRdvTodayClick
+    : stat.title === "Taux de remplissage"
+    ? () => setShowTauxRemplissage(true)
+    : stat.title === "Taux de satisfaction"
+    ? () => setShowAvisStats(true)
+    : undefined
+}
+
             />
           </div>
         ))}
@@ -637,7 +902,19 @@ function DashboardSecretary({ theme }) {
               backgroundColor: theme === 'dark' ? '#0f172a' : '#f8fafc',
               borderBottom: '1px solid rgba(148, 163, 184, 0.1)'
             }}>
-              <h6 className="m-0 font-weight-bold" style={{ color: '#3b82f6' }}>Activité récente</h6>
+              <h6 className="m-0 font-weight-bold" style={{ color: '#3b82f6' }}>Visites mensuelles</h6>
+              {avisStats && (
+                <div className="d-flex gap-3">
+                  <small className="text-success">
+                    <i className="fas fa-arrow-up me-1"></i>
+                    {avisStats.tauxSatisfaction.toFixed(1)}% Satisfaction
+                  </small>
+                  <small className="text-danger">
+                    <i className="fas fa-arrow-down me-1"></i>
+                    {avisStats.tauxMecontentement.toFixed(1)}% Mécontentement
+                  </small>
+                </div>
+              )}
             </div>
             <div className="card-body">
               <div className="chart-area">
@@ -645,13 +922,21 @@ function DashboardSecretary({ theme }) {
                   height: '320px', 
                   backgroundColor: theme === 'dark' ? '#1e293b' : '#f8fafc',
                   borderRadius: '0.5rem',
-                  display: 'flex',
-                  justifyContent: 'center',
-                  alignItems: 'center'
+                  backgroundImage: 'url(https://via.placeholder.com/800x400?text=Hospital+Visits+Chart)',
+                  backgroundSize: 'cover',
+                  backgroundPosition: 'center'
                 }}>
-                  <p style={{ color: theme === 'dark' ? '#94a3b8' : '#64748b' }}>
-                    Graphique d'activité à venir
-                  </p>
+                  <div className="d-flex justify-content-center align-items-center h-100">
+                    <div className="text-center p-4" style={{ 
+                      backgroundColor: theme === 'dark' ? 'rgba(15, 23, 42, 0.8)' : 'rgba(255, 255, 255, 0.8)',
+                      borderRadius: '0.5rem'
+                    }}>
+                      <h5 style={{ color: theme === 'dark' ? 'white' : '#1e293b' }}>Statistiques des visites</h5>
+                      <p className="mb-0" style={{ color: theme === 'dark' ? '#94a3b8' : '#64748b' }}>
+                        Visualisation des données mensuelles des patients
+                      </p>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -668,6 +953,7 @@ function DashboardSecretary({ theme }) {
               borderBottom: '1px solid rgba(148, 163, 184, 0.1)'
             }}>
               <h6 className="m-0 font-weight-bold" style={{ color: '#3b82f6' }}>Rendez-vous à venir</h6>
+              
               <span className="badge bg-blue-500">{appointments.length}</span>
             </div>
             <div className="card-body">
@@ -702,6 +988,12 @@ function DashboardSecretary({ theme }) {
           </div>
         </div>
       </div>
+      <div className="row mt-3">
+  <div className="col-lg-12">
+    <AlerteSanitaire />
+  </div>
+</div>
+
 
       <div className="row">
         <div className="col-lg-6 mb-4">
@@ -770,7 +1062,7 @@ function DashboardSecretary({ theme }) {
             boxShadow: theme === 'dark' ? '0 0 30px rgba(0,0,0,0.5)' : '0 0 30px rgba(0,0,0,0.2)'
           }}>
             <div className="modal-header">
-              <h3 style={{ color: theme === 'dark' ? 'white' : '#1e293b' }}>Statistiques des Patients</h3>
+              <h3 style={{ color: theme === 'dark' ? 'white' : '#1e293b' }}>Statistiques Mensuelles des Patients</h3>
               <button onClick={() => setShowPatientStats(false)} className="close-btn" style={{ color: theme === 'dark' ? '#94a3b8' : '#64748b' }}>
                 &times;
               </button>
@@ -782,11 +1074,26 @@ function DashboardSecretary({ theme }) {
                   <div className="spinner"></div>
                 </div>
               ) : (
-                <div className="text-center py-4">
-                  <p style={{ color: theme === 'dark' ? '#94a3b8' : '#64748b' }}>
-                    Visualisation des statistiques des patients
-                  </p>
-                </div>
+                <>
+                  <div className="chart-container">
+                    <PatientChart data={monthlyPatientData} theme={theme} />
+                  </div>
+                  
+                  <div className="stats-summary">
+                    <div className="summary-card" style={{ borderColor: '#3b82f6' }}>
+                      <h4>Total Annuel</h4>
+                      <p>{monthlyPatientData.reduce((sum, data) => sum + data.count, 0)}</p>
+                    </div>
+                    <div className="summary-card" style={{ borderColor: '#ec4899' }}>
+                      <h4>Mois Actif</h4>
+                      <p>{monthlyPatientData.reduce((max, data) => data.count > max.count ? data : max, {count: 0}).month}</p>
+                    </div>
+                    <div className="summary-card" style={{ borderColor: '#10b981' }}>
+                      <h4>Taux Moyen</h4>
+                      <p>+{Math.floor(monthlyPatientData.reduce((sum, data, idx) => idx > 0 ? sum + data.change : sum, 0) / 11)}%</p>
+                    </div>
+                  </div>
+                </>
               )}
             </div>
             
@@ -805,11 +1112,209 @@ function DashboardSecretary({ theme }) {
           </div>
         </div>
       )}
+      {showPatientMap && (
+  <div className="modal-backdrop show">
+    <div className="modal-container" style={{
+      backgroundColor: theme === 'dark' ? '#1e293b' : 'white',
+      border: theme === 'dark' ? '1px solid #334155' : '1px solid #e2e8f0',
+      boxShadow: theme === 'dark' ? '0 0 30px rgba(0,0,0,0.5)' : '0 0 30px rgba(0,0,0,0.2)',
+      maxWidth: '90%',
+      width: '1000px'
+    }}>
+   <div className="modal-header">
+        <h3 style={{ color: theme === 'dark' ? 'white' : '#1e293b' }}>
+          🌍 Carte Interactive des Patients
+        </h3>
+        <button 
+          onClick={() => setShowPatientMap(false)} 
+          className="close-btn" 
+          style={{ color: theme === 'dark' ? '#94a3b8' : '#64748b' }}
+        >
+          &times;
+        </button>
+      </div>
+      
+      <div className="modal-body">
+        <PatientMap patients={patients} theme={theme} />
+      </div>
+      
+      
+      <div className="modal-footer">
+        <button 
+          onClick={() => setShowPatientMap(false)} 
+          className="close-button"
+          style={{
+            backgroundColor: theme === 'dark' ? '#3b82f6' : '#3b82f6',
+            color: 'white'
+          }}
+        >
+          Fermer
+        </button>
+        
+      </div>
+
     </div>
+
+  </div>
+)}
+{showTauxRemplissage && (
+  <div className="modal-backdrop show">
+    <div className="modal-container" style={{
+      backgroundColor: theme === 'dark' ? '#1e293b' : 'white',
+      border: theme === 'dark' ? '1px solid #334155' : '1px solid #e2e8f0',
+      boxShadow: theme === 'dark' ? '0 0 30px rgba(0,0,0,0.5)' : '0 0 30px rgba(0,0,0,0.2)',
+      maxWidth: '90%',
+      width: '700px'
+    }}>
+      <div className="modal-header">
+        <h3 style={{ color: theme === 'dark' ? 'white' : '#1e293b' }}>
+          📊 Taux de remplissage aujourd’hui
+        </h3>
+        <button 
+          onClick={() => setShowTauxRemplissage(false)} 
+          className="close-btn" 
+          style={{ color: theme === 'dark' ? '#94a3b8' : '#64748b' }}
+        >
+          &times;
+        </button>
+      </div>
+      
+      <div className="modal-body">
+        <TauxRemplissage />
+      </div>
+      
+      <div className="modal-footer">
+        <button 
+          onClick={() => setShowTauxRemplissage(false)} 
+          className="close-button"
+          style={{
+            backgroundColor: theme === 'dark' ? '#3b82f6' : '#3b82f6',
+            color: 'white'
+          }}
+        >
+          Fermer
+        </button>
+      </div>
+    </div>
+  </div>
+)}
+{showAvisStats && (
+  <div className="modal-backdrop show" style={{
+    position: "fixed",
+    top: 0, left: 0, right: 0, bottom: 0,
+    backgroundColor: "rgba(0,0,0,0.6)",
+    display: "flex",
+    justifyContent: "center",
+    alignItems: "center",
+    zIndex: 1050
+  }}>
+    <div className="modal-container animate__animated animate__fadeInUp" style={{
+      background: "linear-gradient(145deg, #fce3ec, #deeafc)",
+      borderRadius: "20px",
+      padding: "25px",
+      width: "95%",
+      maxWidth: "600px",
+      boxShadow: "0 10px 30px rgba(0,0,0,0.2)",
+      color: "#1f2937",
+      fontFamily: "Segoe UI, sans-serif"
+    }}>
+      <div className="modal-header d-flex justify-content-between align-items-center">
+        <h3 style={{ fontWeight: 'bold', fontSize: '1.5rem', color: "#6b21a8" }}>
+          💬 Analyse des Avis Patients
+        </h3>
+        <button 
+          onClick={() => setShowAvisStats(false)} 
+          style={{
+            background: "transparent",
+            border: "none",
+            fontSize: "1.5rem",
+            color: "#6b7280",
+            cursor: "pointer"
+          }}
+        >
+          &times;
+        </button>
+      </div>
+
+      <div className="modal-body mt-4">
+        {avisStats ? (
+          <div className="text-center">
+            <p style={{ fontSize: '1.1rem' }}><strong>Total d'avis :</strong> {avisStats.totalAvis}</p>
+            <p style={{ fontSize: '1.1rem' }}><strong>Taux de satisfaction :</strong> <span style={{ color: "#10b981" }}>{Math.round(avisStats.tauxSatisfaction)}%</span></p>
+            <p style={{ fontSize: '1.1rem' }}><strong>Taux de mécontentement :</strong> <span style={{ color: "#ef4444" }}>{Math.round(avisStats.tauxMecontentement)}%</span></p>
+
+            <div className="progress mt-4" style={{ height: "25px", borderRadius: "12px", overflow: "hidden" }}>
+              <div className="progress-bar" role="progressbar"
+                style={{
+                  width: `${avisStats.tauxSatisfaction}%`,
+                  background: "linear-gradient(90deg, #10b981, #34d399)",
+                  fontWeight: "bold",
+                  color: "white"
+                }}>
+                {Math.round(avisStats.tauxSatisfaction)}%
+              </div>
+              <div className="progress-bar" role="progressbar"
+                style={{
+                  width: `${avisStats.tauxMecontentement}%`,
+                  background: "linear-gradient(90deg, #f43f5e, #ec4899)",
+                  fontWeight: "bold",
+                  color: "white"
+                }}>
+                {Math.round(avisStats.tauxMecontentement)}%
+              </div>
+            </div>
+          </div>
+        ) : (
+          <p className="text-center">Chargement des données...</p>
+        )}
+      </div>
+
+      <div className="modal-footer text-center mt-4">
+        <button 
+          onClick={() => setShowAvisStats(false)} 
+          style={{
+            padding: "10px 20px",
+            background: "linear-gradient(to right, #9333ea, #3b82f6)",
+            color: "white",
+            border: "none",
+            borderRadius: "8px",
+            fontSize: "1rem",
+            fontWeight: "600",
+            cursor: "pointer",
+            boxShadow: "0 4px 12px rgba(0,0,0,0.2)"
+          }}
+        >
+          Fermer
+        </button>
+      </div>
+    </div>
+  </div>
+)}
+
+<DameIAContextuelle 
+  visible={showDameIA}
+  message={messageDame}
+  onClose={() => setShowDameIA(false)}
+/>
+<button
+  onClick={() => activerDameIA("Bonjour, je suis votre assistante IA. Besoin d’aide ?")}
+  style={{ position: 'fixed', bottom: 100, right: 20, zIndex: 10001 }}
+>
+  Test IA
+</button>
+
+
+    </div>
+
   );
+  
 }
 
 function FichePatient({ theme }) {
+  const iframeStyle = {
+    backgroundColor: theme === 'dark' ? '#1e293b' : 'white'
+  };
+
   return (
     <div className="card shadow" style={{ 
       backgroundColor: theme === 'dark' ? '#1e293b' : 'white', 
@@ -823,21 +1328,29 @@ function FichePatient({ theme }) {
         <h5 className="m-0 font-weight-bold" style={{ color: '#3b82f6' }}>Fiche Patient</h5>
       </div>
       <div className="card-body">
-        <div style={{
-          height: '80vh',
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          color: theme === 'dark' ? '#94a3b8' : '#64748b'
-        }}>
-          Interface de fiche patient à venir
-        </div>
+        <iframe
+          src="http://127.0.0.1:8000/fiche-patient"
+          style={{
+            width: '100%',
+            height: '80vh',
+            border: 'none',
+            borderRadius: '0.35rem',
+            ...iframeStyle
+          }}
+          title="Fiche Patient"
+        ></iframe>
       </div>
     </div>
   );
 }
 
+
+
 function Rdvs({ theme }) {
+  const iframeStyle = {
+    backgroundColor: theme === 'dark' ? '#1e293b' : 'white'
+  };
+
   return (
     <div className="card shadow" style={{ 
       backgroundColor: theme === 'dark' ? '#1e293b' : 'white', 
@@ -851,15 +1364,17 @@ function Rdvs({ theme }) {
         <h5 className="m-0 font-weight-bold" style={{ color: '#3b82f6' }}>Rendez-vous</h5>
       </div>
       <div className="card-body">
-        <div style={{
-          height: '80vh',
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          color: theme === 'dark' ? '#94a3b8' : '#64748b'
-        }}>
-          Interface de gestion des rendez-vous à venir
-        </div>
+        <iframe
+          src="http://127.0.0.1:8000/voir-rendezvous"
+          style={{
+            width: '100%',
+            height: '80vh',
+            border: 'none',
+            borderRadius: '0.35rem',
+            ...iframeStyle
+          }}
+          title="Rendez-vous"
+        ></iframe>
       </div>
     </div>
   );
@@ -1049,8 +1564,6 @@ style.textContent = `
 
 body {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-  margin: 0;
-  padding: 0;
 }
 
 .sidebar {
@@ -1074,7 +1587,7 @@ body {
 }
 
 .nav-link-custom {
-  color: inherit;
+  color: rgba(255, 255, 255, 0.8);
   font-weight: 500;
   padding: 1rem;
   text-decoration: none;
@@ -1085,16 +1598,16 @@ body {
 }
 
 .nav-link-custom:hover {
-  color: #3b82f6;
-  background-color: rgba(59, 130, 246, 0.1);
-  border-left: 3px solid #3b82f6;
+  color: white;
+  background-color: rgba(96, 165, 250, 0.2);
+  border-left: 3px solid #60a5fa;
 }
 
 .nav-link-custom.active {
-  color: #3b82f6;
+  color: white;
   font-weight: 600;
-  background-color: rgba(59, 130, 246, 0.1);
-  border-left: 3px solid #3b82f6;
+  background-color: rgba(96, 165, 250, 0.2);
+  border-left: 3px solid #60a5fa;
 }
 
 .header {
@@ -1102,7 +1615,6 @@ body {
   top: 0;
   z-index: 999;
   transition: all 0.3s ease;
-  padding: 0.75rem 1.5rem;
 }
 
 .search-bar input:focus {
@@ -1135,6 +1647,24 @@ body {
   height: 3rem;
   width: 3rem;
   border-radius: 100%;
+}
+
+.trend-success {
+  color: #ec4899;
+  background-color: rgba(236, 72, 153, 0.1);
+  padding: 2px 8px;
+  border-radius: 10px;
+  display: inline-flex;
+  align-items: center;
+}
+
+.trend-info {
+  color: #3b82f6;
+  background-color: rgba(59, 130, 246, 0.1);
+  padding: 2px 8px;
+  border-radius: 10px;
+  display: inline-flex;
+  align-items: center;
 }
 
 .flex-grow-1 {
@@ -1249,6 +1779,113 @@ body {
   padding: 20px;
   overflow-y: auto;
   flex-grow: 1;
+}
+
+.chart-container {
+  margin-bottom: 30px;
+}
+
+.chart-bars {
+  display: flex;
+  justify-content: space-around;
+  height: 300px;
+  align-items: flex-end;
+  gap: 10px;
+}
+
+.bar-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex-grow: 1;
+  max-width: 40px;
+}
+
+.bar-label {
+  margin-bottom: 10px;
+  font-size: 12px;
+  color: #64748b;
+}
+
+.bar-label.dark {
+  color: #94a3b8;
+}
+
+.bar-wrapper {
+  flex-grow: 1;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
+.bar {
+  width: 20px;
+  border-radius: 4px 4px 0 0;
+  transition: height 0.5s ease;
+}
+
+.bar-value {
+  margin-top: 8px;
+  font-size: 12px;
+  font-weight: bold;
+  color: #1e293b;
+}
+
+.bar-value.dark {
+  color: white;
+}
+
+.bar-change {
+  margin-top: 4px;
+  font-size: 11px;
+  font-weight: bold;
+}
+
+.bar-change.positive {
+  color: #ec4899;
+}
+
+.bar-change.negative {
+  color: #3b82f6;
+}
+
+.stats-summary {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 15px;
+  margin-top: 30px;
+}
+
+.summary-card {
+  padding: 15px;
+  border-radius: 8px;
+  border-left: 4px solid;
+  background-color: #f8fafc;
+}
+
+.summary-card.dark {
+  background-color: #0f172a;
+}
+
+.summary-card h4 {
+  margin: 0 0 10px 0;
+  font-size: 14px;
+  color: #64748b;
+}
+
+.summary-card.dark h4 {
+  color: #94a3b8;
+}
+
+.summary-card p {
+  margin: 0;
+  font-size: 18px;
+  font-weight: bold;
+  color: #1e293b;
+}
+
+.summary-card.dark p {
+  color: white;
 }
 
 .modal-footer {

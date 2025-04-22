@@ -1,7 +1,7 @@
 <?php
 
 namespace App\Http\Controllers;
-
+use Carbon\Carbon;
 use App\Models\PlanningJour;  // Importer le modèle PlanningJour
 use Illuminate\Http\Request;
 
@@ -70,11 +70,9 @@ public function destroy($id)
 }
 public function suggestionsIntelligentes(Request $request)
 {
-    $specialite = $request->input('specialite'); // Optionnel
-    $dateSouhaitee = $request->input('date') ?? Carbon::now()->toDateString();
+    $dateSouhaitee = $request->input('date') ?? now()->toDateString();
 
-    // On prend les 5 prochains jours à partir d'aujourd'hui
-    $plannings = PlanningJour::with(['medecin', 'rendezVous'])
+    $plannings = PlanningJour::with('medecin', 'rendezVous')
         ->whereDate('date', '>=', $dateSouhaitee)
         ->orderBy('date')
         ->get();
@@ -82,39 +80,32 @@ public function suggestionsIntelligentes(Request $request)
     $suggestions = [];
 
     foreach ($plannings as $planning) {
-        $nbConfirmes = $planning->rendezVous->where('statut', 'confirmé')->count();
-        $nbAttente = $planning->rendezVous->where('statut', 'attente')->count();
+        $confirmes = $planning->rendezVous->where('statut', 'confirmé')->count();
+        $attentes = $planning->rendezVous->where('statut', 'attente')->count();
 
-        $placesRestantes = $planning->nombre_max_patients - $nbConfirmes;
-        $attenteRestantes = $planning->nombre_max_attente - $nbAttente;
+        $maxConfirmes = $planning->nombre_max_patients;
+        $maxAttentes = $planning->nombre_max_attente;
 
-        // Filtres intelligents
-        if ($placesRestantes > 0 || $attenteRestantes > 0) {
-            if ($specialite && $planning->medecin->specialite !== $specialite) {
-                continue;
-            }
-
+        if ($confirmes < $maxConfirmes || $attentes < $maxAttentes) {
             $suggestions[] = [
                 'id' => $planning->id,
                 'date' => $planning->date,
                 'heure_debut' => $planning->heure_debut,
                 'heure_fin' => $planning->heure_fin,
                 'medecin' => [
-                    'id' => $planning->medecin->id,
-                    'name' => $planning->medecin->name,
-                    'specialite' => $planning->medecin->specialite ?? 'Généraliste',
+                    'id' => optional($planning->medecin)->id ?? 0,
+                    'name' => optional($planning->medecin)->name ?? 'Inconnu',
+                    'specialite' => 'Généraliste',
                 ],
-                'places_dispo' => $placesRestantes,
-                'places_attente' => $attenteRestantes,
+                'places_dispo' => $maxConfirmes - $confirmes,
+                'places_attente' => $maxAttentes - $attentes,
             ];
         }
     }
 
     return response()->json([
         'message' => 'Suggestions de créneaux disponibles',
-        'date_depart' => $dateSouhaitee,
         'resultats' => $suggestions
     ]);
 }
 }
-

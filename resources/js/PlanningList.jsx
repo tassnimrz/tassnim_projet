@@ -126,93 +126,126 @@ const PlanningList = () => {
   };
 
   return (
-    <div className="container-fluid px-4 py-4 background-container">
-      <div className="content-overlay">
-        <ToastContainer position="top-right" autoClose={3000} />
+    <div className="container-fluid px-0 planning-app">
+      {/* Fond animé avec particules */}
+      <div className="particles-background"></div>
+      
+      <div className="content-wrapper">
+        <ToastContainer 
+          position="top-right" 
+          autoClose={3000}
+          toastClassName="custom-toast"
+          progressClassName="custom-toast-progress"
+        />
         
-        {/* En-tête moderne */}
-        <motion.div 
-          initial={{ opacity: 0, y: -20 }}
+        {/* En-tête avec effet de verre */}
+        <motion.header 
+          className="glass-card header-section"
+          initial={{ opacity: 0, y: -50 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="text-center mb-5"
+          transition={{ duration: 0.6, type: "spring" }}
         >
-          <h1 className="text-gradient mb-3">
-            <i className="fas fa-calendar-alt me-2"></i>
-            Gestion des Créneaux Médicaux
-          </h1>
-          <p className="lead text-muted">
-            Optimisez l'organisation des consultations de votre cabinet
-          </p>
-        </motion.div>
+          <div className="header-content text-center py-4">
+            <motion.div 
+              className="app-icon"
+              whileHover={{ rotate: 15 }}
+            >
+              <i className="fas fa-calendar-check"></i>
+            </motion.div>
+            <h1 className="text-gradient mb-2">
+              Gestion des Créneaux Médicaux
+            </h1>
+            <p className="tagline">
+              Optimisez l'organisation des consultations de votre cabinet
+            </p>
+          </div>
+        </motion.header>
 
-        {/* Barre de contrôle */}
+        {/* Barre de contrôle moderne */}
         <motion.div 
-          className="card mb-4 border-0 shadow-sm"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.2 }}
+          className="glass-card control-panel mb-4"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2, duration: 0.5 }}
         >
-          <div className="card-body p-3">
-            <div className="row align-items-center">
-              <div className="col-md-4 mb-2 mb-md-0">
-                <div className="input-group">
-                  <span className="input-group-text bg-white">
-                    <i className="fas fa-search"></i>
-                  </span>
-                  <input
-                    type="text"
-                    className="form-control"
-                    placeholder="Rechercher un médecin..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                  />
-                </div>
+          <div className="row g-3 align-items-center">
+            <div className="col-md-4">
+              <div className="search-box">
+                <i className="fas fa-search search-icon"></i>
+                <input
+                  type="text"
+                  className="form-control search-input"
+                  placeholder="Rechercher un médecin..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+                {searchTerm && (
+                  <motion.button
+                    className="clear-search"
+                    onClick={() => setSearchTerm('')}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    whileHover={{ scale: 1.1 }}
+                  >
+                    <i className="fas fa-times"></i>
+                  </motion.button>
+                )}
               </div>
-              <div className="col-md-4 mb-2 mb-md-0">
+            </div>
+            
+            <div className="col-md-4">
+              <div className="date-picker-wrapper">
+                <i className="fas fa-calendar-alt date-icon"></i>
                 <input
                   type="date"
-                  className="form-control"
+                  className="form-control date-input"
                   value={selectedDate}
                   onChange={(e) => setSelectedDate(e.target.value)}
                 />
               </div>
-              <div className="col-md-4 text-md-end">
-                <motion.button
-                  whileHover={{ scale: 1.03 }}
-                  whileTap={{ scale: 0.98 }}
-                  className="btn btn-primary"
-                  onClick={() => setIsFormVisible(!isFormVisible)}
-                >
-                  <i className={`fas ${isFormVisible ? 'fa-minus' : 'fa-plus'} me-2`}></i>
-                  {isFormVisible ? 'Masquer le formulaire' : 'Nouveau créneau'}
-                </motion.button>
-              </div>
+            </div>
+            
+            <div className="col-md-4 text-md-end">
+              <motion.button
+                className="primary-button"
+                onClick={() => setIsFormVisible(!isFormVisible)}
+                whileHover={{ 
+                  scale: 1.05,
+                  boxShadow: "0 5px 15px rgba(13, 110, 253, 0.4)"
+                }}
+                whileTap={{ scale: 0.98 }}
+              >
+                <i className={`fas ${isFormVisible ? 'fa-minus' : 'fa-plus'} me-2`}></i>
+                {isFormVisible ? 'Masquer le formulaire' : 'Nouveau créneau'}
+              </motion.button>
             </div>
           </div>
         </motion.div>
 
-        {/* Formulaire avec animation */}
+        {/* Formulaire avec animation élégante */}
         <AnimatePresence>
           {isFormVisible && (
             <motion.div
+              className="glass-card form-section"
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: 'auto' }}
               exit={{ opacity: 0, height: 0 }}
-              transition={{ duration: 0.3 }}
-              className="card mb-4 border-0 shadow-sm"
+              transition={{ duration: 0.4, ease: "easeInOut" }}
             >
-              <div className="card-header bg-white border-0">
-                <h4 className="mb-0 text-primary">
+              <div className="form-header">
+                <h3>
                   <i className="fas fa-calendar-plus me-2"></i>
                   Ajouter un nouveau créneau
-                </h4>
+                </h3>
+                <div className="form-decoration"></div>
               </div>
-              <div className="card-body">
-                <form onSubmit={handleSubmit}>
-                  <div className="row g-3">
-                    <div className="col-md-6">
-                      <label className="form-label">Médecin</label>
+              
+              <form onSubmit={handleSubmit} className="needs-validation" noValidate>
+                <div className="row g-3">
+                  <div className="col-md-6">
+                    <label className="form-label">Médecin</label>
+                    <div className="input-with-icon">
+                      <i className="fas fa-user-md"></i>
                       <select
                         className={`form-select ${errors.medecin_id ? 'is-invalid' : ''}`}
                         name="medecin_id"
@@ -229,9 +262,12 @@ const PlanningList = () => {
                       </select>
                       {errors.medecin_id && <div className="invalid-feedback">{errors.medecin_id[0]}</div>}
                     </div>
+                  </div>
 
-                    <div className="col-md-6">
-                      <label className="form-label">Date</label>
+                  <div className="col-md-6">
+                    <label className="form-label">Date</label>
+                    <div className="input-with-icon">
+                      <i className="fas fa-calendar-day"></i>
                       <input
                         type="date"
                         className={`form-control ${errors.date ? 'is-invalid' : ''}`}
@@ -243,9 +279,12 @@ const PlanningList = () => {
                       />
                       {errors.date && <div className="invalid-feedback">{errors.date[0]}</div>}
                     </div>
+                  </div>
 
-                    <div className="col-md-3">
-                      <label className="form-label">Places en salle d'attente</label>
+                  <div className="col-md-3">
+                    <label className="form-label">Places en salle d'attente</label>
+                    <div className="input-with-icon">
+                      <i className="fas fa-user-friends"></i>
                       <input
                         type="number"
                         min="1"
@@ -258,9 +297,12 @@ const PlanningList = () => {
                       />
                       {errors.nombre_max_attente && <div className="invalid-feedback">{errors.nombre_max_attente[0]}</div>}
                     </div>
+                  </div>
 
-                    <div className="col-md-3">
-                      <label className="form-label">Nombre de patients</label>
+                  <div className="col-md-3">
+                    <label className="form-label">Nombre de patients</label>
+                    <div className="input-with-icon">
+                      <i className="fas fa-procedures"></i>
                       <input
                         type="number"
                         min="1"
@@ -273,9 +315,12 @@ const PlanningList = () => {
                       />
                       {errors.nombre_max_patients && <div className="invalid-feedback">{errors.nombre_max_patients[0]}</div>}
                     </div>
+                  </div>
 
-                    <div className="col-md-3">
-                      <label className="form-label">Heure de début</label>
+                  <div className="col-md-3">
+                    <label className="form-label">Heure de début</label>
+                    <div className="input-with-icon">
+                      <i className="fas fa-clock"></i>
                       <input
                         type="time"
                         className={`form-control ${errors.heure_debut ? 'is-invalid' : ''}`}
@@ -283,13 +328,16 @@ const PlanningList = () => {
                         value={newPlanning.heure_debut}
                         onChange={handleInputChange}
                         required
-                        step="900" // 15 minutes
+                        step="900"
                       />
                       {errors.heure_debut && <div className="invalid-feedback">{errors.heure_debut[0]}</div>}
                     </div>
+                  </div>
 
-                    <div className="col-md-3">
-                      <label className="form-label">Heure de fin</label>
+                  <div className="col-md-3">
+                    <label className="form-label">Heure de fin</label>
+                    <div className="input-with-icon">
+                      <i className="fas fa-clock"></i>
                       <input
                         type="time"
                         className={`form-control ${errors.heure_fin ? 'is-invalid' : ''}`}
@@ -297,29 +345,37 @@ const PlanningList = () => {
                         value={newPlanning.heure_fin}
                         onChange={handleInputChange}
                         required
-                        step="900" // 15 minutes
+                        step="900"
                       />
                       {errors.heure_fin && <div className="invalid-feedback">{errors.heure_fin[0]}</div>}
                     </div>
+                  </div>
 
-                    <div className="col-12 mt-3 d-flex justify-content-end gap-2">
+                  <div className="col-12 mt-4">
+                    <div className="d-flex justify-content-end gap-3">
                       <motion.button
                         type="button"
-                        className="btn btn-outline-secondary"
+                        className="secondary-button"
                         onClick={() => {
                           resetForm();
                           setIsFormVisible(false);
                         }}
-                        whileHover={{ scale: 1.02 }}
+                        whileHover={{ 
+                          scale: 1.03,
+                          backgroundColor: '#f8f9fa'
+                        }}
                         whileTap={{ scale: 0.98 }}
                       >
                         Annuler
                       </motion.button>
                       <motion.button
                         type="submit"
-                        className="btn btn-primary"
+                        className="primary-button"
                         disabled={isLoading}
-                        whileHover={{ scale: 1.02 }}
+                        whileHover={{ 
+                          scale: 1.03,
+                          boxShadow: "0 5px 15px rgba(13, 110, 253, 0.4)"
+                        }}
                         whileTap={{ scale: 0.98 }}
                       >
                         {isLoading ? (
@@ -336,297 +392,793 @@ const PlanningList = () => {
                       </motion.button>
                     </div>
                   </div>
-                </form>
-              </div>
+                </div>
+              </form>
             </motion.div>
           )}
         </AnimatePresence>
 
-        {/* Liste des plannings */}
+        {/* Section principale avec les plannings */}
         <motion.div 
-          className="card border-0 shadow-sm"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.4 }}
+          className="glass-card main-content"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.4, duration: 0.5 }}
         >
-          <div className="card-header bg-white border-0">
+          <div className="content-header">
             <div className="d-flex justify-content-between align-items-center">
-              <h4 className="mb-0 text-primary">
+              <h3>
                 <i className="fas fa-list me-2"></i>
                 Planning des consultations
-              </h4>
-              <div className="text-muted small">
+              </h3>
+              <div className="results-count">
                 {filteredPlannings.length} créneau{filteredPlannings.length !== 1 ? 'x' : ''} trouvé{filteredPlannings.length !== 1 ? 's' : ''}
               </div>
             </div>
           </div>
-          <div className="card-body p-0">
-            {isLoading && plannings.length === 0 ? (
-              <div className="text-center py-5">
-                <div className="spinner-border text-primary"></div>
-                <p className="mt-2">Chargement des créneaux...</p>
-              </div>
-            ) : filteredPlannings.length === 0 ? (
-              <motion.div 
-                className="text-center py-5"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
+
+          {isLoading && plannings.length === 0 ? (
+            <div className="loading-state">
+              <motion.div
+                animate={{ rotate: 360 }}
+                transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
+                className="loading-spinner"
               >
-                <i className="fas fa-calendar-times fa-3x mb-3 text-muted"></i>
-                <h5 className="text-muted">Aucun créneau correspondant</h5>
-                <p className="text-muted">Essayez de modifier vos critères de recherche</p>
-                <button 
-                  className="btn btn-outline-primary mt-2"
-                  onClick={() => {
-                    setSearchTerm('');
-                    setSelectedDate('');
+                <i className="fas fa-circle-notch"></i>
+              </motion.div>
+              <p>Chargement des créneaux...</p>
+            </div>
+          ) : filteredPlannings.length === 0 ? (
+            <motion.div 
+              className="empty-state"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+            >
+              <div className="empty-icon">
+                <i className="fas fa-calendar-times"></i>
+              </div>
+              <h4>Aucun créneau correspondant</h4>
+              <p>Essayez de modifier vos critères de recherche</p>
+              <motion.button 
+                className="primary-button outline"
+                onClick={() => {
+                  setSearchTerm('');
+                  setSelectedDate('');
+                }}
+                whileHover={{ scale: 1.03 }}
+                whileTap={{ scale: 0.98 }}
+              >
+                Réinitialiser les filtres
+              </motion.button>
+            </motion.div>
+          ) : (
+            <div className="planning-grid">
+              {filteredPlannings.map((planning) => (
+                <motion.div 
+                  key={planning.id}
+                  className="planning-card"
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ duration: 0.3 }}
+                  whileHover={{ 
+                    y: -5,
+                    boxShadow: "0 10px 20px rgba(0,0,0,0.1)"
                   }}
                 >
-                  Réinitialiser les filtres
-                </button>
-              </motion.div>
-            ) : (
-              <div className="table-responsive">
-                <table className="table table-hover mb-0">
-                  <thead className="table-light">
-                    <tr>
-                      <th>Date</th>
-                      <th>Médecin</th>
-                      <th className="text-center">Spécialité</th>
-                      <th className="text-center">Attente</th>
-                      <th className="text-center">Patients</th>
-                      <th className="text-center">Horaires</th>
-                      <th className="text-center">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredPlannings.map((planning) => (
-                      <motion.tr 
-                        key={planning.id}
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        transition={{ duration: 0.3 }}
-                        whileHover={{ backgroundColor: 'rgba(13, 110, 253, 0.05)' }}
-                      >
-                        <td>
-                          <div className="d-flex align-items-center">
-                            <div className="date-badge me-3">
-                              <div className="day">{new Date(planning.date).getDate()}</div>
-                              <div className="month">{new Date(planning.date).toLocaleString('fr-FR', { month: 'short' })}</div>
-                            </div>
-                            <div>
-                              <strong>{formatDate(planning.date)}</strong>
-                              <div className="text-muted small">
-                                {new Date(planning.date).toLocaleDateString('fr-FR', { weekday: 'long' })}
-                              </div>
-                            </div>
-                          </div>
-                        </td>
-                        <td>
-                          <div className="d-flex align-items-center">
-                            <div className="avatar me-3">
-                              <i className="fas fa-user-md text-primary"></i>
-                            </div>
-                            <div>
-                              <strong>Dr. {planning.medecin?.name || "Non spécifié"}</strong>
-                              <div className="text-muted small">{planning.medecin?.email || ""}</div>
-                            </div>
-                          </div>
-                        </td>
-                        <td className="text-center">
-                          <span className="badge bg-info bg-opacity-10 text-info">
-                            {planning.medecin?.specialite || "Généraliste"}
-                          </span>
-                        </td>
-                        <td className="text-center">
-                          <span className="badge bg-info bg-opacity-20 text-dark rounded-pill px-3 py-2">
-                            {planning.nombre_max_attente} places
-                          </span>
-                        </td>
-                        <td className="text-center">
-                          <span className="badge bg-primary bg-opacity-20 text-dark rounded-pill px-3 py-2">
-                            {planning.nombre_max_patients} patients
-                          </span>
-                        </td>
-                        <td className="text-center">
-                          <span className="time-badge">
-                            {formatTime(planning.heure_debut)} - {formatTime(planning.heure_fin)}
-                          </span>
-                        </td>
-                        <td className="text-center">
-                          <motion.button
-                            className="btn btn-sm btn-outline-danger"
-                            onClick={() => handleDelete(planning.id)}
-                            whileHover={{ scale: 1.1 }}
-                            whileTap={{ scale: 0.9 }}
-                          >
-                            <i className="fas fa-trash-alt"></i>
-                          </motion.button>
-                        </td>
-                      </motion.tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
+                  <div className="planning-date">
+                    <div className="date-badge">
+                      <span className="day">{new Date(planning.date).getDate()}</span>
+                      <span className="month">{new Date(planning.date).toLocaleString('fr-FR', { month: 'short' })}</span>
+                    </div>
+                    <div className="date-info">
+                      <h5>{formatDate(planning.date)}</h5>
+                      <span>{new Date(planning.date).toLocaleDateString('fr-FR', { weekday: 'long' })}</span>
+                    </div>
+                  </div>
+                  
+                  <div className="planning-doctor">
+                    <div className="doctor-avatar">
+                      <i className="fas fa-user-md"></i>
+                    </div>
+                    <div className="doctor-info">
+                      <h6>Dr. {planning.medecin?.name || "Non spécifié"}</h6>
+                      <span className="specialty">{planning.medecin?.specialite || "Généraliste"}</span>
+                    </div>
+                  </div>
+                  
+                  <div className="planning-time">
+                    <i className="fas fa-clock"></i>
+                    <span>{formatTime(planning.heure_debut)} - {formatTime(planning.heure_fin)}</span>
+                  </div>
+                  
+                  <div className="planning-stats">
+                    <div className="stat-item">
+                      <i className="fas fa-user-friends"></i>
+                      <span>{planning.nombre_max_attente} places</span>
+                    </div>
+                    <div className="stat-item">
+                      <i className="fas fa-procedures"></i>
+                      <span>{planning.nombre_max_patients} patients</span>
+                    </div>
+                  </div>
+                  
+                  <div className="planning-actions">
+                    <motion.button
+                      className="delete-button"
+                      onClick={() => handleDelete(planning.id)}
+                      whileHover={{ scale: 1.1 }}
+                      whileTap={{ scale: 0.9 }}
+                    >
+                      <i className="fas fa-trash-alt"></i>
+                    </motion.button>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          )}
         </motion.div>
 
-        {/* Statistiques */}
+        {/* Cartes de statistiques */}
         <motion.div 
-          className="row mt-4"
+          className="stats-grid"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.6 }}
         >
-          <div className="col-md-4 mb-3">
-            <div className="card border-0 shadow-sm h-100">
-              <div className="card-body text-center">
-                <h5 className="text-muted mb-3">
-                  <i className="fas fa-user-md me-2"></i>
-                  Médecins actifs
-                </h5>
-                <h2 className="text-primary">{medecins.length}</h2>
-              </div>
+          <motion.div 
+            className="stat-card"
+            whileHover={{ y: -5 }}
+          >
+            <div className="stat-icon blue">
+              <i className="fas fa-user-md"></i>
             </div>
-          </div>
-          <div className="col-md-4 mb-3">
-            <div className="card border-0 shadow-sm h-100">
-              <div className="card-body text-center">
-                <h5 className="text-muted mb-3">
-                  <i className="fas fa-calendar-day me-2"></i>
-                  Créneaux programmés
-                </h5>
-                <h2 className="text-primary">{plannings.length}</h2>
-              </div>
+            <div className="stat-info">
+              <h3>{medecins.length}</h3>
+              <p>Médecins actifs</p>
             </div>
-          </div>
-          <div className="col-md-4 mb-3">
-            <div className="card border-0 shadow-sm h-100">
-              <div className="card-body text-center">
-                <h5 className="text-muted mb-3">
-                  <i className="fas fa-users me-2"></i>
-                  Capacité totale
-                </h5>
-                <h2 className="text-primary">
-                  {plannings.reduce((sum, p) => sum + parseInt(p.nombre_max_patients), 0)}
-                </h2>
-              </div>
+          </motion.div>
+          
+          <motion.div 
+            className="stat-card"
+            whileHover={{ y: -5 }}
+          >
+            <div className="stat-icon green">
+              <i className="fas fa-calendar-day"></i>
             </div>
-          </div>
+            <div className="stat-info">
+              <h3>{plannings.length}</h3>
+              <p>Créneaux programmés</p>
+            </div>
+          </motion.div>
+          
+          <motion.div 
+            className="stat-card"
+            whileHover={{ y: -5 }}
+          >
+            <div className="stat-icon purple">
+              <i className="fas fa-users"></i>
+            </div>
+            <div className="stat-info">
+              <h3>{plannings.reduce((sum, p) => sum + parseInt(p.nombre_max_patients), 0)}</h3>
+              <p>Capacité totale</p>
+            </div>
+          </motion.div>
         </motion.div>
 
         {/* Pied de page moderne */}
         <motion.footer 
-          className="mt-5 pt-4 pb-3 text-center text-muted small border-top"
+          className="app-footer"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.8 }}
         >
-          <div className="d-flex justify-content-center gap-4 mb-3">
-            <a href="#" className="text-decoration-none text-muted">
-              <i className="fas fa-question-circle me-2"></i>Aide
+          <div className="footer-links">
+            <a href="#">
+              <i className="fas fa-question-circle"></i>
+              <span>Aide</span>
             </a>
-            <a href="#" className="text-decoration-none text-muted">
-              <i className="fas fa-cog me-2"></i>Paramètres
+            <a href="#">
+              <i className="fas fa-cog"></i>
+              <span>Paramètres</span>
             </a>
-            <a href="#" className="text-decoration-none text-muted">
-              <i className="fas fa-envelope me-2"></i>Contact
+            <a href="#">
+              <i className="fas fa-envelope"></i>
+              <span>Contact</span>
             </a>
           </div>
-          <p className="mb-0">
-            <i className="fas fa-heart text-danger mx-1"></i>
-            Cabinet Médical © {new Date().getFullYear()} - Tous droits réservés
-          </p>
+          <div className="footer-copyright">
+            <p>
+              <i className="fas fa-heart"></i>
+              Cabinet Médical © {new Date().getFullYear()} - Tous droits réservés
+            </p>
+          </div>
         </motion.footer>
-
-        {/* Styles CSS intégrés */}
-        <style>{`
-          .background-container {
-            background-image: url('https://media.istockphoto.com/id/186723896/fr/photo/abstrait-fond-bleu-carte-d.webp?a=1&b=1&s=612x612&w=0&k=20&c=CUEQ-VoBaaZTVvEHUdBhDG1a1KtEW8VydwIRSntmRkQ=');
-            background-size: cover;
-            background-position: center;
-            background-attachment: fixed;
-            background-repeat: no-repeat;
-            min-height: 100vh;
-          }
-          
-          .content-overlay {
-            background-color: rgba(255, 255, 255, 0.95);
-            border-radius: 15px;
-            padding: 2rem;
-          }
-
-          .text-gradient {
-            background: linear-gradient(45deg, #0d6efd, #20c997);
-            -webkit-background-clip: text;
-            background-clip: text;
-            -webkit-text-fill-color: transparent;
-            font-weight: 700;
-          }
-          
-          .date-badge {
-            width: 50px;
-            height: 50px;
-            background: #f8f9fa;
-            border-radius: 10px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            border: 1px solid #dee2e6;
-          }
-          
-          .date-badge .day {
-            font-size: 1.2rem;
-            font-weight: bold;
-            line-height: 1;
-          }
-          
-          .date-badge .month {
-            font-size: 0.7rem;
-            text-transform: uppercase;
-            color: #6c757d;
-          }
-          
-          .avatar {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            background: #f0f7ff;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.2rem;
-          }
-          
-          .time-badge {
-            background: #e9ecef;
-            padding: 5px 10px;
-            border-radius: 20px;
-            font-weight: 500;
-            font-size: 0.9rem;
-          }
-          
-          .table-hover tbody tr {
-            transition: all 0.2s ease;
-          }
-          
-          .card {
-            border-radius: 12px;
-            overflow: hidden;
-          }
-          
-          .card-header {
-            padding: 1rem 1.5rem;
-          }
-          
-          .lead {
-            font-size: 1.25rem;
-            font-weight: 300;
-          }
-        `}</style>
       </div>
+
+      {/* Styles CSS intégrés */}
+      <style>{`
+        .planning-app {
+          min-height: 100vh;
+          position: relative;
+          overflow-x: hidden;
+          background: linear-gradient(135deg, #f5f7fa 0%, #e4e8f0 100%);
+        }
+        
+        .particles-background {
+          position: fixed;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          background: linear-gradient(45deg, #0d6efd20, #20c99720);
+          z-index: 0;
+          overflow: hidden;
+        }
+        
+        .particles-background::before {
+          content: "";
+          position: absolute;
+          top: -50%;
+          left: -50%;
+          width: 200%;
+          height: 200%;
+          background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+          animation: particle-move 20s linear infinite;
+        }
+        
+        @keyframes particle-move {
+          0% { transform: translate(0, 0); }
+          100% { transform: translate(50%, 50%); }
+        }
+        
+        .content-wrapper {
+          position: relative;
+          z-index: 1;
+          padding: 2rem;
+          max-width: 1400px;
+          margin: 0 auto;
+        }
+        
+        .glass-card {
+          background: rgba(255, 255, 255, 0.85);
+          backdrop-filter: blur(10px);
+          -webkit-backdrop-filter: blur(10px);
+          border-radius: 16px;
+          box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+          border: 1px solid rgba(255, 255, 255, 0.3);
+          overflow: hidden;
+          margin-bottom: 1.5rem;
+          transition: all 0.3s ease;
+        }
+        
+        .header-section {
+          padding: 2rem;
+          margin-bottom: 2rem;
+          text-align: center;
+          background: linear-gradient(45deg, rgba(13, 110, 253, 0.1), rgba(32, 201, 151, 0.1));
+        }
+        
+        .app-icon {
+          width: 80px;
+          height: 80px;
+          margin: 0 auto 1rem;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background: linear-gradient(45deg, #0d6efd, #20c997);
+          color: white;
+          border-radius: 50%;
+          font-size: 2rem;
+          box-shadow: 0 5px 20px rgba(13, 110, 253, 0.3);
+        }
+        
+        .text-gradient {
+          background: linear-gradient(45deg, #0d6efd, #20c997);
+          -webkit-background-clip: text;
+          background-clip: text;
+          -webkit-text-fill-color: transparent;
+          font-weight: 700;
+          margin-bottom: 0.5rem;
+          font-size: 2.2rem;
+        }
+        
+        .tagline {
+          color: #6c757d;
+          font-size: 1.1rem;
+          max-width: 600px;
+          margin: 0 auto;
+        }
+        
+        .control-panel {
+          padding: 1.5rem;
+          background: rgba(255, 255, 255, 0.9);
+        }
+        
+        .search-box {
+          position: relative;
+        }
+        
+        .search-icon {
+          position: absolute;
+          left: 15px;
+          top: 50%;
+          transform: translateY(-50%);
+          color: #6c757d;
+          z-index: 2;
+        }
+        
+        .search-input {
+          padding-left: 40px;
+          border-radius: 50px;
+          border: 1px solid #e9ecef;
+          height: 45px;
+          transition: all 0.3s;
+        }
+        
+        .search-input:focus {
+          border-color: #0d6efd;
+          box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+        }
+        
+        .clear-search {
+          position: absolute;
+          right: 15px;
+          top: 50%;
+          transform: translateY(-50%);
+          background: none;
+          border: none;
+          color: #6c757d;
+          z-index: 2;
+          cursor: pointer;
+          padding: 5px;
+        }
+        
+        .date-picker-wrapper {
+          position: relative;
+        }
+        
+        .date-icon {
+          position: absolute;
+          left: 15px;
+          top: 50%;
+          transform: translateY(-50%);
+          color: #6c757d;
+          z-index: 2;
+        }
+        
+        .date-input {
+          padding-left: 40px;
+          border-radius: 50px;
+          border: 1px solid #e9ecef;
+          height: 45px;
+        }
+        
+        .primary-button {
+          background: linear-gradient(45deg, #0d6efd, #20c997);
+          color: white;
+          border: none;
+          border-radius: 50px;
+          padding: 10px 20px;
+          font-weight: 500;
+          transition: all 0.3s;
+          height: 45px;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+        }
+        
+        .primary-button:hover {
+          color: white;
+          transform: translateY(-2px);
+        }
+        
+        .primary-button.outline {
+          background: transparent;
+          border: 2px solid #0d6efd;
+          color: #0d6efd;
+        }
+        
+        .secondary-button {
+          background: #f8f9fa;
+          color: #495057;
+          border: none;
+          border-radius: 50px;
+          padding: 10px 20px;
+          font-weight: 500;
+          transition: all 0.3s;
+        }
+        
+        .form-section {
+          padding: 2rem;
+        }
+        
+        .form-header {
+          margin-bottom: 2rem;
+          position: relative;
+        }
+        
+        .form-header h3 {
+          color: #0d6efd;
+          font-weight: 600;
+        }
+        
+        .form-decoration {
+          position: absolute;
+          bottom: -10px;
+          left: 0;
+          width: 50px;
+          height: 3px;
+          background: linear-gradient(45deg, #0d6efd, #20c997);
+          border-radius: 3px;
+        }
+        
+        .input-with-icon {
+          position: relative;
+        }
+        
+        .input-with-icon i {
+          position: absolute;
+          left: 15px;
+          top: 50%;
+          transform: translateY(-50%);
+          color: #6c757d;
+          z-index: 2;
+        }
+        
+        .input-with-icon .form-control,
+        .input-with-icon .form-select {
+          padding-left: 40px;
+          border-radius: 8px;
+          height: 45px;
+        }
+        
+        .main-content {
+          padding: 2rem;
+        }
+        
+        .content-header {
+          margin-bottom: 1.5rem;
+          padding-bottom: 1rem;
+          border-bottom: 1px solid rgba(0,0,0,0.05);
+        }
+        
+        .content-header h3 {
+          color: #0d6efd;
+          font-weight: 600;
+        }
+        
+        .results-count {
+          background: #f8f9fa;
+          padding: 5px 15px;
+          border-radius: 50px;
+          font-size: 0.9rem;
+          color: #6c757d;
+        }
+        
+        .loading-state {
+          text-align: center;
+          padding: 3rem 0;
+        }
+        
+        .loading-spinner {
+          font-size: 2rem;
+          color: #0d6efd;
+          margin-bottom: 1rem;
+        }
+        
+        .empty-state {
+          text-align: center;
+          padding: 3rem 0;
+        }
+        
+        .empty-icon {
+          font-size: 3rem;
+          color: #6c757d;
+          margin-bottom: 1rem;
+          opacity: 0.5;
+        }
+        
+        .empty-state h4 {
+          color: #495057;
+          margin-bottom: 0.5rem;
+        }
+        
+        .empty-state p {
+          color: #6c757d;
+          margin-bottom: 1.5rem;
+        }
+        
+        .planning-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+          gap: 1.5rem;
+        }
+        
+        .planning-card {
+          background: white;
+          border-radius: 12px;
+          padding: 1.5rem;
+          box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+          transition: all 0.3s ease;
+          position: relative;
+          overflow: hidden;
+          border: 1px solid rgba(0,0,0,0.05);
+        }
+        
+        .planning-card::before {
+          content: "";
+          position: absolute;
+          top: 0;
+          left: 0;
+          width: 4px;
+          height: 100%;
+          background: linear-gradient(to bottom, #0d6efd, #20c997);
+        }
+        
+        .planning-date {
+          display: flex;
+          align-items: center;
+          margin-bottom: 1.5rem;
+        }
+        
+        .date-badge {
+          width: 60px;
+          height: 60px;
+          background: #f8f9fa;
+          border-radius: 10px;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          margin-right: 1rem;
+        }
+        
+        .date-badge .day {
+          font-size: 1.5rem;
+          font-weight: bold;
+          line-height: 1;
+          color: #0d6efd;
+        }
+        
+        .date-badge .month {
+          font-size: 0.8rem;
+          text-transform: uppercase;
+          color: #6c757d;
+          margin-top: 3px;
+        }
+        
+        .date-info h5 {
+          font-size: 1rem;
+          margin-bottom: 0.25rem;
+          color: #495057;
+        }
+        
+        .date-info span {
+          font-size: 0.8rem;
+          color: #6c757d;
+        }
+        
+        .planning-doctor {
+          display: flex;
+          align-items: center;
+          margin-bottom: 1.5rem;
+        }
+        
+        .doctor-avatar {
+          width: 50px;
+          height: 50px;
+          border-radius: 50%;
+          background: #f0f7ff;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          margin-right: 1rem;
+          color: #0d6efd;
+          font-size: 1.2rem;
+        }
+        
+        .doctor-info h6 {
+          font-size: 1rem;
+          margin-bottom: 0.25rem;
+          color: #212529;
+        }
+        
+        .doctor-info .specialty {
+          font-size: 0.8rem;
+          color: #20c997;
+          background: rgba(32, 201, 151, 0.1);
+          padding: 2px 8px;
+          border-radius: 50px;
+          display: inline-block;
+        }
+        
+        .planning-time {
+          display: flex;
+          align-items: center;
+          margin-bottom: 1.5rem;
+          padding: 0.75rem;
+          background: rgba(13, 110, 253, 0.05);
+          border-radius: 8px;
+        }
+        
+        .planning-time i {
+          color: #0d6efd;
+          margin-right: 0.75rem;
+          font-size: 1.1rem;
+        }
+        
+        .planning-time span {
+          font-weight: 500;
+          color: #495057;
+        }
+        
+        .planning-stats {
+          display: flex;
+          gap: 1rem;
+          margin-bottom: 1.5rem;
+        }
+        
+        .stat-item {
+          flex: 1;
+          display: flex;
+          align-items: center;
+          padding: 0.5rem;
+          background: #f8f9fa;
+          border-radius: 8px;
+        }
+        
+        .stat-item i {
+          margin-right: 0.5rem;
+          color: #6c757d;
+        }
+        
+        .stat-item span {
+          font-size: 0.9rem;
+          color: #495057;
+        }
+        
+        .planning-actions {
+          display: flex;
+          justify-content: flex-end;
+        }
+        
+        .delete-button {
+          width: 40px;
+          height: 40px;
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background: rgba(220, 53, 69, 0.1);
+          color: #dc3545;
+          border: none;
+          transition: all 0.3s;
+        }
+        
+        .delete-button:hover {
+          background: rgba(220, 53, 69, 0.2);
+        }
+        
+        .stats-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+          gap: 1.5rem;
+          margin-top: 1.5rem;
+        }
+        
+        .stat-card {
+          background: white;
+          border-radius: 12px;
+          padding: 1.5rem;
+          box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+          transition: all 0.3s ease;
+          display: flex;
+          align-items: center;
+        }
+        
+        .stat-icon {
+          width: 60px;
+          height: 60px;
+          border-radius: 12px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          margin-right: 1.5rem;
+          font-size: 1.5rem;
+          color: white;
+        }
+        
+                .stat-icon.blue {
+          background: linear-gradient(45deg, #0d6efd, #3d8bfd);
+        }
+        
+        .stat-icon.green {
+          background: linear-gradient(45deg, #20c997, #3dd9a0);
+        }
+        
+        .stat-icon.purple {
+          background: linear-gradient(45deg, #6f42c1, #8c65d3);
+        }
+        
+        .stat-info h3 {
+          font-size: 1.75rem;
+          margin-bottom: 0.25rem;
+          color: #212529;
+        }
+        
+        .stat-info p {
+          color: #6c757d;
+          margin-bottom: 0;
+          font-size: 0.9rem;
+        }
+        
+        .app-footer {
+          margin-top: 3rem;
+          padding-top: 2rem;
+          text-align: center;
+          border-top: 1px solid rgba(0,0,0,0.05);
+        }
+        
+        .footer-links {
+          display: flex;
+          justify-content: center;
+          gap: 2rem;
+          margin-bottom: 1.5rem;
+        }
+        
+        .footer-links a {
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+          color: #6c757d;
+          text-decoration: none;
+          transition: all 0.3s;
+        }
+        
+        .footer-links a:hover {
+          color: #0d6efd;
+        }
+        
+        .footer-copyright {
+          color: #6c757d;
+          font-size: 0.9rem;
+        }
+        
+        .footer-copyright i {
+          color: #dc3545;
+          margin: 0 5px;
+        }
+        
+        .custom-toast {
+          border-radius: 12px !important;
+          background: rgba(255, 255, 255, 0.95) !important;
+          backdrop-filter: blur(10px) !important;
+          -webkit-backdrop-filter: blur(10px) !important;
+          box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1) !important;
+          border: 1px solid rgba(255, 255, 255, 0.3) !important;
+          color: #212529 !important;
+        }
+        
+        .custom-toast-progress {
+          background: linear-gradient(45deg, #0d6efd, #20c997) !important;
+        }
+        
+        @media (max-width: 768px) {
+          .planning-grid {
+            grid-template-columns: 1fr;
+          }
+          
+          .stats-grid {
+            grid-template-columns: 1fr;
+          }
+          
+          .footer-links {
+            flex-direction: column;
+            gap: 1rem;
+            align-items: center;
+          }
+        }
+      `}</style>
     </div>
   );
 };

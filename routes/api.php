@@ -141,4 +141,4 @@ Route::middleware('auth')->get('/api/capsule-sante', [RendezVousController::clas
 
 
 Route::get('/rendezvous/stats-pour-chatbot', [RendezVousController::class, 'statsPourChatbot']);
-Route::get('/plannings/suggestions', [PlanningJourController::class, 'suggestionsIntelligentes']);
+Route::get('/stats/remplissage', [RendezVousController::class, 'getRemplissageAujourdhui']);

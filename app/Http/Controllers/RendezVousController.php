@@ -488,6 +488,24 @@ private function getRdvAujourdhui()
         'details' => $rdvs
     ];
 }
+public function getRemplissageAujourdhui()
+{
+    $today = now()->toDateString();
+
+    $rdvs = RendezVous::whereHas('planningJour', function ($query) use ($today) {
+        $query->whereDate('date', $today);
+    })->get();
+
+    $confirmes = $rdvs->where('statut', 'confirmé')->count();
+    $attentes = $rdvs->where('statut', 'attente')->count();
+    $total = $confirmes + $attentes;
+
+    return response()->json([
+        'confirmes' => $confirmes,
+        'attentes' => $attentes,
+        'total' => $total
+    ]);
+}
 
 
 

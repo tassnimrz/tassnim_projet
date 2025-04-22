@@ -49,5 +49,12 @@ class User extends Authenticatable implements MustVerifyEmail
         'email_verified_at' => 'datetime',
         'password' => 'hashed',
     ];
+    // app/Models/User.php
+
+public function planningJours()
+{
+    return $this->hasMany(PlanningJour::class, 'medecin_id');
+}
+
     
 }
