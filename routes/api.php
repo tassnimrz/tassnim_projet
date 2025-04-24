@@ -76,6 +76,7 @@ Route::get('/patients', [RegisteredUserController::class, 'getPatients']);
 Route::apiResource('fiche-patient', FichePatientController::class);
 use App\Http\Controllers\PlanningJourController;
 
+Route::get('/planning-jours', [PlanningJourController::class, 'index']);
 
 Route::get('/plannings', [PlanningJourController::class, 'index']);
 Route::post('/plannings', [PlanningJourController::class, 'store']);
@@ -134,11 +135,6 @@ Route::middleware('auth')->get('/api/capsule-sante', [RendezVousController::clas
 
 
 
-
-
-
-
-
-
 Route::get('/rendezvous/stats-pour-chatbot', [RendezVousController::class, 'statsPourChatbot']);
 Route::get('/stats/remplissage', [RendezVousController::class, 'getRemplissageAujourdhui']);
+Route::get('/rendezvous/tous', [RendezVousController::class, 'index']);

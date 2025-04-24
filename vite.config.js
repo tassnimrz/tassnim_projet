@@ -19,7 +19,8 @@ export default defineConfig({
              'resources/js/PlanningList.jsx',
              'resources/js/PrendreRendezVous.jsx',
              'resources/js/voirrendezvous.jsx',
-             'resources/js/patient_rendezvous.jsx'
+             'resources/js/patient_rendezvous.jsx',
+             'resources/js/aProposNous.jsx'
         ],
         refresh: true,
     }),

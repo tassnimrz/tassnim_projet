@@ -52,6 +52,7 @@ const translations = {
   fr: {
     leaveBlank: "Laisser vide pour ne pas modifier",
     dashboard: "Tableau de bord",
+    dashboardSettings: "Réglages Dashboard",
     searchPlaceholder: "Rechercher...",
     profile: "Profil",
     settings: "Paramètres",
@@ -77,8 +78,8 @@ const translations = {
       staff: "Personnel"
     },
     roles: {
-      doctor: "Médecin",
-      secretary: "Secrétaire",
+      medecin: "Medecin",
+      secretaire: "Secretaire",
       patient: "Patient",
       admin: "Administrateur"
     },
@@ -118,6 +119,7 @@ const translations = {
   en: {
     leaveBlank: "Leave blank to keep unchanged",
     dashboard: "Dashboard",
+    dashboardSettings: "Dashboard Settings",
     searchPlaceholder: "Search...",
     profile: "Profile",
     settings: "Settings",
@@ -143,8 +145,8 @@ const translations = {
       staff: "Staff"
     },
     roles: {
-      doctor: "Doctor",
-      secretary: "Secretary",
+      medecin: "medecin",
+      secretaire: "secretaire",
       patient: "Patient",
       admin: "Admin"
     },
@@ -309,22 +311,15 @@ const UserManagement = ({ currentTheme, language }) => {
   const fetchUsers = async () => {
     try {
       const response = await axios.get("http://127.0.0.1:8000/users");
-      const adaptedUsers = response.data.map(user => ({
-        ...user,
-        roles: [{ name: user.role }],
-        date_naissance: user.dateNaissance || user.date_naissance
-      }));
-
-      const sortedUsers = adaptedUsers.sort((a, b) => {
+      const sortedUsers = response.data.sort((a, b) => {
         const rolePriority = { 
-          administrateur: 1, 
+          admin: 1, 
           medecin: 2, 
           secretaire: 3, 
           patient: 4 
         };
-        return rolePriority[a.roles[0].name] - rolePriority[b.roles[0].name];
+        return rolePriority[a.roles[0]?.name] - rolePriority[b.roles[0]?.name];
       });
-      
       setUsers(sortedUsers);
       setLoading(false);
     } catch (error) {
@@ -344,10 +339,10 @@ const UserManagement = ({ currentTheme, language }) => {
       name: user.name || "",
       email: user.email || "",
       tel: user.tel || "",
-      adresse: user.adresse || user.address || "",
+      adresse: user.adresse || "",
       dateNaissance: user.date_naissance || "",
       status: user.status || "active",
-      role: user.roles[0]?.name || user.role || "medecin",
+      role: user.roles[0]?.name || "medecin",
       password: "",
       password_confirmation: ""
     });
@@ -359,30 +354,40 @@ const UserManagement = ({ currentTheme, language }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    if (!editingId && formData.password !== formData.password_confirmation) {
-      setMessage(translations[language].passwordsDontMatch);
-      return;
+    if (!editingId) {
+      if (formData.password !== formData.password_confirmation) {
+        setMessage(translations[language].passwordsDontMatch);
+        return;
+      }
+    } else {
+      if (formData.password && formData.password !== formData.password_confirmation) {
+        setMessage(translations[language].passwordsDontMatch);
+        return;
+      }
     }
-
+  
     try {
       const payload = {
         ...formData,
-        dateNaissance: formData.dateNaissance,
-        role: formData.role
+        date_naissance: formData.dateNaissance,
+        ...(editingId && !formData.password ? {} : { password_confirmation: formData.password_confirmation })
       };
-
+  
       if (editingId) {
         if (!payload.password) {
           delete payload.password;
           delete payload.password_confirmation;
         }
+      }
+  
+      if (editingId) {
         await axios.put(`http://127.0.0.1:8000/users/update/${editingId}`, payload);
         setMessage(translations[language].successUpdate);
       } else {
         await axios.post("http://127.0.0.1:8000/users/create", payload);
         setMessage(translations[language].successCreate);
       }
-
+  
       resetForm();
       fetchUsers();
     } catch (error) {
@@ -424,52 +429,48 @@ const UserManagement = ({ currentTheme, language }) => {
     user.email.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const UserBadge = ({ roles }) => {
-    const roleArray = Array.isArray(roles) ? roles : [{ name: roles }];
-    
-    return (
-      <>
-        {roleArray.map((role, index) => {
-          let Icon, Label;
-          switch(role.name) {
-            case 'medecin':
-              Icon = faUserMd;
-              Label = translations[language].roles.doctor;
-              break;
-            case 'administrateur':
-              Icon = faUserShield;
-              Label = translations[language].roles.admin;
-              break;
-            case 'secretaire':
-              Icon = faUserSecret;
-              Label = translations[language].roles.secretary;
-              break;
-            case 'patient':
-              Icon = faUserInjured;
-              Label = translations[language].roles.patient;
-              break;
-            default:
-              Icon = faUserSecret;
-              Label = 'administrateur';
-          }
-          return (
-            <Badge 
-              key={index} 
-              pill 
-              className="me-1"
-              style={{ 
-                backgroundColor: currentTheme === 'dark' ? '#00c2cb20' : '#1e90ff20',
-                color: currentTheme === 'dark' ? '#00c2cb' : '#1e90ff'
-              }}
-            >
-              <FontAwesomeIcon icon={Icon} className="me-1" />
-              {Label}
-            </Badge>
-          );
-        })}
-      </>
-    );
-  };
+  const UserBadge = ({ roles }) => (
+    <>
+      {roles.map((role, index) => {
+        let Icon, Label;
+        switch(role.name) {
+          case 'medecin':
+            Icon = faUserMd;
+            Label = translations[language].roles.medecin;
+            break;
+          case 'administrateur':
+            Icon = faUserShield;
+            Label = translations[language].roles.admin;
+            break;
+          case 'secretaire':
+            Icon = faUserSecret;
+            Label = translations[language].roles.secretaire;
+            break;
+          case 'patient':
+            Icon = faUserInjured;
+            Label = translations[language].roles.patient;
+            break;
+          default:
+            Icon = faUserSecret;
+            Label = 'administrateur';
+        }
+        return (
+          <Badge 
+            key={index} 
+            pill 
+            className="me-1"
+            style={{ 
+              backgroundColor: currentTheme === 'dark' ? '#00c2cb20' : '#1e90ff20',
+              color: currentTheme === 'dark' ? '#00c2cb' : '000000'
+            }}
+          >
+            <FontAwesomeIcon icon={Icon} className="me-1" />
+            {Label}
+          </Badge>
+        );
+      })}
+    </>
+  );
 
   const StatusIndicator = ({ status }) => (
     <div className="d-flex align-items-center gap-2">
@@ -725,9 +726,9 @@ const UserManagement = ({ currentTheme, language }) => {
                       value={formData.role}
                       onChange={handleInputChange}
                     >
-                      <option value="medecin">{translations[language].roles.doctor}</option>
+                      <option value="medecin">{translations[language].roles.medecin}</option>
                       <option value="administrateur">{translations[language].roles.admin}</option>
-                      <option value="secretaire">{translations[language].roles.secretary}</option>
+                      <option value="secretaire">{translations[language].roles.secretaire}</option>
                       <option value="patient">{translations[language].roles.patient}</option>
                     </Form.Select>
                   </Form.Group>
@@ -1364,12 +1365,20 @@ const AdminDashboard = () => {
                 { icon: faChartBar, text: translations[language].dashboard, path: "/dashboard" },
                 { icon: faComment, text: translations[language].avisManagement, path: "/avis" },
                 { icon: faUserMd, text: translations[language].personnelManagement, path: "/users" },
-                { icon: faClipboardList, text: translations[language].reportsStatistics, path: "/reports" }
+                { icon: faClipboardList, text: translations[language].reportsStatistics, path: "/reports" },
+                { 
+                  icon: faCog, 
+                  text: translations[language].dashboardSettings, 
+                  path: "/dashboard-settings",
+                  external: "http://127.0.0.1:8000/a-propos-ns/create" 
+                }
               ].map((item, index) => (
                 <Nav.Link 
                   key={index}
-                  as={Link}
-                  to={item.path}
+                  as={item.external ? 'a' : Link}
+                  href={item.external || undefined}
+                  to={!item.external ? item.path : undefined}
+                  target={item.external ? "_blank" : undefined}
                   className="d-flex align-items-center gap-2 p-3 rounded hover-effect"
                   style={{ 
                     color: currentTheme.text,

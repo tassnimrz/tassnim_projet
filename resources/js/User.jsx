@@ -66,8 +66,8 @@ const translations = {
       staff: "Personnel"
     },
     roles: {
-      doctor: "Médecin",
-      secretary: "Secrétaire",
+      medecin: "Medecin",
+      secretaire: "Secretaire",
       patient: "Patient",
       admin: "Administrateur"
     },
@@ -113,8 +113,8 @@ const translations = {
       staff: "Staff"
     },
     roles: {
-      doctor: "Doctor",
-      secretary: "Secretary",
+      medecin: "medecin",
+      secretaire: "Secretaire",
       patient: "Patient",
       admin: "Admin"
     },
@@ -169,7 +169,7 @@ const UserManagement = ({ currentTheme, language }) => {
       const response = await axios.get("http://127.0.0.1:8000/users");
       const sortedUsers = response.data.sort((a, b) => {
         const rolePriority = { 
-          administrateur: 1, 
+          admin: 1, 
           medecin: 2, 
           secretaire: 3, 
           patient: 4 
@@ -297,7 +297,7 @@ const UserManagement = ({ currentTheme, language }) => {
         switch(role.name) {
           case 'medecin':
             Icon = faUserMd;
-            Label = translations[language].roles.doctor;
+            Label = translations[language].roles.medecin;
             break;
           case 'administrateur':
             Icon = faUserShield;
@@ -305,7 +305,7 @@ const UserManagement = ({ currentTheme, language }) => {
             break;
           case 'secretaire':
             Icon = faUserSecret;
-            Label = translations[language].roles.secretary;
+            Label = translations[language].roles.secretaire;
             break;
           case 'patient':
             Icon = faUserInjured;
@@ -322,7 +322,7 @@ const UserManagement = ({ currentTheme, language }) => {
             className="me-1"
             style={{ 
               backgroundColor: currentTheme === 'dark' ? '#00c2cb20' : '#1e90ff20',
-              color: currentTheme === 'dark' ? '#00c2cb' : '#1e90ff'
+              color: currentTheme === 'dark' ? '#00c2cb' : '000000'
             }}
           >
             <FontAwesomeIcon icon={Icon} className="me-1" />
@@ -592,9 +592,9 @@ const UserManagement = ({ currentTheme, language }) => {
                       value={formData.role}
                       onChange={handleInputChange}
                     >
-                      <option value="medecin">{translations[language].roles.doctor}</option>
+                      <option value="medecin">{translations[language].roles.medecin}</option>
                       <option value="administrateur">{translations[language].roles.admin}</option>
-                      <option value="secretaire">{translations[language].roles.secretary}</option>
+                      <option value="secretaire">{translations[language].roles.secretaire}</option>
                       <option value="patient">{translations[language].roles.patient}</option>
                     </Form.Select>
                   </Form.Group>
@@ -796,7 +796,7 @@ const AdminDashboard = () => {
         .glass-card {
           background: ${currentTheme.cardBackground};
           backdrop-filter: blur(12px);
-          border: 1px solid ${theme === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'} !important;
+          border: 1px solid ${theme === 'dark' ? 'rgba(216, 224, 227, 0.1)' : 'rgba(0,0,0,0.1)'} !important;
           transition: all 0.3s ease;
         }
 

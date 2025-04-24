@@ -5,6 +5,8 @@ import PatientMap from './PatientMap';
 import AlerteSanitaire from './AlerteSanitaire';
 import TauxRemplissage from './TauxRemplissage';
 import DameIAContextuelle from './DameIAContextuelle';
+import Calendar from 'react-calendar';
+import 'react-calendar/dist/Calendar.css';
 import {
   BrowserRouter,
   NavLink,
@@ -21,6 +23,202 @@ import {
 } from 'react-bootstrap-icons';
 
 const ThemeContext = createContext();
+
+function ConseilsIA({ theme, onClose }) {
+  const [conseils, setConseils] = useState([]);
+  const [statistiques, setStatistiques] = useState(null);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [rdvRes, patientsRes, avisRes] = await Promise.all([
+          axios.get('/api/rendezvous/stats-pour-chatbot'),
+          axios.get('/api/patients'),
+          axios.get('/api/avis/stats')
+        ]);
+
+        const stats = {
+          rdvAujourdhui: rdvRes.data.rdv_aujourdhui.count,
+          patientsIncomplets: patientsRes.data.filter(p => !p.informations_completes).length,
+          tauxSatisfaction: avisRes.data.tauxSatisfaction
+        };
+
+        const nouveauxConseils = [];
+        
+        if (stats.rdvAujourdhui > 15) {
+          nouveauxConseils.push({
+            type: 'urgence',
+            message: `⚠️ Forte charge aujourd'hui (${stats.rdvAujourdhui} RDV). Prévoir des créneaux supplémentaires.`,
+            pourcentage: Math.min(100, (stats.rdvAujourdhui / 20) * 100)
+          });
+        }
+
+        if (stats.patientsIncomplets > 0) {
+          nouveauxConseils.push({
+            type: 'patient',
+            message: `📋 ${stats.patientsIncomplets} dossiers patients incomplets à compléter`,
+            pourcentage: Math.min(100, (stats.patientsIncomplets / 50) * 100)
+          });
+        }
+
+        if (stats.tauxSatisfaction < 70) {
+          nouveauxConseils.push({
+            type: 'satisfaction',
+            message: `😟 Taux de satisfaction bas (${Math.round(stats.tauxSatisfaction)}%). Vérifier les derniers avis.`,
+            pourcentage: stats.tauxSatisfaction
+          });
+        }
+
+        setStatistiques(stats);
+        setConseils(nouveauxConseils);
+
+      } catch (error) {
+        console.error("Erreur récupération données conseils:", error);
+      }
+    };
+
+    fetchData();
+  }, []);
+
+  return (
+    <div className="modal-backdrop show">
+      <div className="modal-container" style={{
+        background: theme === 'dark' ? '#1e1a2e' : 'white',
+        border: theme === 'dark' ? '1px solid #3a2d5a' : '1px solid #f3e8ff',
+        borderRadius: '20px',
+        maxWidth: '800px',
+        width: '90%'
+      }}>
+        <div className="modal-header" style={{ 
+          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+          borderTopLeftRadius: '20px',
+          borderTopRightRadius: '20px'
+        }}>
+          <h3 className="text-white mb-0">🤖 Assistant IA Médical</h3>
+          <button onClick={onClose} className="btn btn-link text-white">&times;</button>
+        </div>
+        
+        <div className="modal-body p-4">
+          <div className="row">
+            <div className="col-md-4 mb-4">
+              <div className="card h-100" style={{ 
+                background: theme === 'dark' ? '#2d2a42' : '#f5f3ff',
+                border: 'none'
+              }}>
+                <div className="card-body text-center">
+                  <div className="avatar-anime mb-3">
+                    <img 
+                      src="https://i.gifer.com/7Ql8.gif" 
+                      alt="IA Avatar"
+                      style={{
+                        width: '100px',
+                        height: '100px',
+                        borderRadius: '50%',
+                        objectFit: 'cover',
+                        border: '3px solid #8b5cf6'
+                      }}
+                    />
+                  </div>
+                  <h5 className="mb-1">Dr. Intelligence</h5>
+                  <p className="text-muted small">Assistant Médical IA</p>
+                  <div className="badge bg-purple-100 text-purple-800">
+                    Version 2.1.5
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="col-md-8">
+              <h4 className="mb-4" style={{ color: theme === 'dark' ? 'white' : '#4c1d95' }}>
+                Conseils Opérationnels
+              </h4>
+              
+              {conseils.length > 0 ? (
+                conseils.map((conseil, index) => (
+                  <div key={index} className="alert mb-3" style={{
+                    background: theme === 'dark' ? '#3a2d5a' : '#f3e8ff',
+                    borderLeft: `4px solid ${conseil.type === 'urgence' ? '#ef4444' : '#8b5cf6'}`,
+                    borderRadius: '8px'
+                  }}>
+                    <div className="d-flex justify-content-between align-items-center">
+                      <div>
+                        {conseil.message}
+                        <div className="progress mt-2" style={{ height: '6px', width: '200px' }}>
+                          <div className="progress-bar" 
+                               role="progressbar" 
+                               style={{ width: `${conseil.pourcentage}%`, 
+                                       background: `linear-gradient(90deg, ${conseil.type === 'urgence' ? '#ef4444' : '#8b5cf6'}, #ec4899)` }}>
+                          </div>
+                        </div>
+                      </div>
+                    
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="text-center py-4">
+                  <p className="text-muted">Aucun problème détecté. Tout semble en ordre ! 🎉</p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {statistiques && (
+            <div className="row mt-4">
+              <div className="col-md-6">
+                <div className="card" style={{ 
+                  background: theme === 'dark' ? '#2d2a42' : '#fff',
+                  border: 'none'
+                }}>
+                  <div className="card-body">
+                    <h6 className="text-uppercase small">Statistiques Clés</h6>
+                    <div className="d-flex justify-content-between align-items-center mb-3">
+                      <span>RDV Aujourd'hui</span>
+                      <span className="badge bg-purple-500">{statistiques.rdvAujourdhui}</span>
+                    </div>
+                    <div className="d-flex justify-content-between align-items-center mb-3">
+                      <span>Dossiers Incomplets</span>
+                      <span className="badge bg-pink-500">{statistiques.patientsIncomplets}</span>
+                    </div>
+                    <div className="d-flex justify-content-between align-items-center">
+                      <span>Satisfaction Patients</span>
+                      <span className="badge bg-green-500">{Math.round(statistiques.tauxSatisfaction)}%</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="col-md-6">
+                <div className="card" style={{ 
+                  background: theme === 'dark' ? '#2d2a42' : '#fff',
+                  border: 'none'
+                }}>
+                  <div className="card-body">
+                    <h6 className="text-uppercase small">Actions Recommandées</h6>
+                    <ul className="list-unstyled">
+                      <li className="mb-2">
+                        <input type="checkbox" className="form-check-input me-2" />
+                        Vérifier les disponibilités
+                      </li>
+                      <li className="mb-2">
+                        <input type="checkbox" className="form-check-input me-2" />
+                        Relancer les patients
+                      </li>
+                      <li>
+                        <input type="checkbox" className="form-check-input me-2" />
+                        Mettre à jour les plannings
+                      </li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 function MedicalChatbot({ theme }) {
   const [messages, setMessages] = useState([
@@ -121,62 +319,66 @@ function MedicalChatbot({ theme }) {
   };
 
   return (
-    
     <div className="card shadow" style={{ 
-      backgroundColor: theme === 'dark' ? '#1e293b' : 'white',
+      backgroundColor: theme === 'dark' ? '#1e1a2e' : 'white',
       height: '500px',
       display: 'flex',
       flexDirection: 'column',
-      border: theme === 'dark' ? '1px solid #334155' : '1px solid #e2e8f0'
+      border: theme === 'dark' ? '1px solid #3a2d5a' : '1px solid #f3e8ff',
+      borderRadius: '16px'
     }}>
       <div className="card-header py-3 d-flex justify-content-between align-items-center" style={{ 
-        backgroundColor: theme === 'dark' ? '#0f172a' : '#f8fafc',
-        borderBottom: theme === 'dark' ? '1px solid #334155' : '1px solid #e2e8f0'
+        background: 'linear-gradient(135deg,rgb(129, 37, 220) 0%, #ec4899 100%)',
+        borderBottom: 'none',
+        borderTopLeftRadius: '16px',
+        borderTopRightRadius: '16px'
       }}>
-        <h6 className="m-0 font-weight-bold" style={{ color: '#3b82f6' }}>
+        <h6 className="m-0 font-weight-bold text-white">
           Assistant Secrétaire
         </h6>
-        <span className="badge bg-primary">Beta</span>
+        <span className="badge bg-pink-200 text-purple-800">Beta</span>
       </div>
       
       <div style={{ 
         flex: 1, 
         overflowY: 'auto', 
         padding: '15px',
-        backgroundColor: theme === 'dark' ? '#1e293b' : 'white'
+        background: theme === 'dark' ? '#1e1a2e' : 'linear-gradient(to bottom right, #fdf4ff, #f5f3ff)'
       }}>
-    
         {messages.map((msg, i) => (
           <div key={i} className={`mb-3 d-flex ${msg.sender === 'user' ? 'justify-content-end' : 'justify-content-start'}`}>
             <div style={{
               maxWidth: '85%',
               padding: '12px 16px',
               borderRadius: msg.sender === 'user' ? '18px 18px 0 18px' : '18px 18px 18px 0',
-              backgroundColor: msg.sender === 'user' 
-                ? '#3b82f6' 
+              background: msg.sender === 'user' 
+                ? 'linear-gradient(135deg, #ec4899 0%,rgb(23, 38, 245) 100%)' 
                 : theme === 'dark' 
-                  ? '#334155' 
-                  : '#f1f5f9',
-              color: msg.sender === 'user' ? 'white' : theme === 'dark' ? 'white' : '#1e293b',
+                  ? '#3a2d5a' 
+                  : '#f3e8ff',
+              color: msg.sender === 'user' ? 'white' : theme === 'dark' ? 'white' : '#4c1d95',
               whiteSpace: 'pre-line',
-              boxShadow: theme === 'dark' ? '0 2px 4px rgba(0,0,0,0.2)' : '0 2px 4px rgba(0,0,0,0.05)'
+              boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
             }}>
               {msg.text}
               {msg.isStats && (
                 <div className="mt-2">
                   <div className="progress" style={{ 
                     height: '8px', 
-                    backgroundColor: theme === 'dark' ? '#475569' : '#e2e8f0',
+                    background: theme === 'dark' ? '#3a2d5a' : '#e9d5ff',
                     borderRadius: '4px'
                   }}>
                     <div 
-                      className="progress-bar bg-success" 
+                      className="progress-bar" 
                       role="progressbar" 
-                      style={{ width: '100%' }}
+                      style={{ 
+                        width: '100%',
+                        background: 'linear-gradient(90deg, #ec4899,rgb(78, 10, 239))'
+                      }}
                     ></div>
                   </div>
                   <small className="d-block mt-1" style={{ 
-                    color: theme === 'dark' ? '#94a3b8' : '#64748b',
+                    color: theme === 'dark' ? '#a78bfa' : '#7e22ce',
                     fontSize: '0.75rem'
                   }}>
                     Dernière mise à jour: {new Date().toLocaleTimeString()}
@@ -191,10 +393,10 @@ function MedicalChatbot({ theme }) {
             <div style={{
               padding: '10px 15px',
               borderRadius: '18px 18px 18px 0',
-              backgroundColor: theme === 'dark' ? '#334155' : '#f1f5f9',
-              color: theme === 'dark' ? 'white' : '#1e293b'
+              background: theme === 'dark' ? '#3a2d5a' : '#f3e8ff',
+              color: theme === 'dark' ? 'white' : '#4c1d95'
             }}>
-              <div className="spinner-border spinner-border-sm text-primary me-2" role="status">
+              <div className="spinner-border spinner-border-sm text-purple-500 me-2" role="status">
                 <span className="visually-hidden">Chargement...</span>
               </div>
               <span>Recherche en cours...</span>
@@ -203,9 +405,11 @@ function MedicalChatbot({ theme }) {
         )}
       </div>
       
-      <div className="p-3 border-top" style={{ 
-        backgroundColor: theme === 'dark' ? '#0f172a' : '#f8fafc',
-        borderTop: theme === 'dark' ? '1px solid #334155' : '1px solid #e2e8f0'
+      <div className="p-3" style={{ 
+        background: theme === 'dark' ? '#1e1a2e' : 'linear-gradient(to bottom right, #fdf4ff, #f5f3ff)',
+        borderTop: theme === 'dark' ? '1px solid #3a2d5a' : '1px solid #f3e8ff',
+        borderBottomLeftRadius: '16px',
+        borderBottomRightRadius: '16px'
       }}>
         <div className="mb-2">
           <div className="d-flex flex-wrap gap-2">
@@ -217,10 +421,11 @@ function MedicalChatbot({ theme }) {
                 style={{ 
                   fontSize: '0.75rem',
                   borderRadius: '20px',
-                  backgroundColor: theme === 'dark' ? '#1e293b' : '#e2e8f0',
-                  border: theme === 'dark' ? '1px solid #334155' : '1px solid #e2e8f0',
-                  color: theme === 'dark' ? '#e2e8f0' : '#1e293b',
-                  padding: '4px 12px'
+                  background: theme === 'dark' ? '#3a2d5a' : '#f3e8ff',
+                  border: 'none',
+                  color: theme === 'dark' ? '#e9d5ff' : '#7e22ce',
+                  padding: '4px 12px',
+                  boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
                 }}
               >
                 {suggestion}
@@ -248,7 +453,9 @@ function MedicalChatbot({ theme }) {
             disabled={loading}
             style={{
               borderRadius: '0 20px 20px 0',
-              borderLeft: 'none'
+              borderLeft: 'none',
+              background: 'linear-gradient(135deg,rgb(84, 16, 243) 0%, #ec4899 100%)',
+              border: 'none'
             }}
           >
             {loading ? (
@@ -260,56 +467,54 @@ function MedicalChatbot({ theme }) {
               'Envoyer'
             )}
           </button>
-
         </div>
       </div>
-      
     </div>
   );
 }
 
 function Sidebar({ isCollapsed, theme }) {
   const sidebarStyle = {
-    background: 'rgba(15, 23, 42, 0.9)',
-    backdropFilter: 'blur(10px)',
+    background: 'linear-gradient(180deg,rgb(58, 40, 217) 0%,rgb(72, 115, 223) 100%)',
     color: 'white',
-    boxShadow: '0 0 30px rgba(0,0,0,0.2)'
+    boxShadow: '0 0 30px rgba(139, 92, 246, 0.3)',
+    backdropFilter: 'blur(10px)'
   };
 
   return (
     <div className={`sidebar ${isCollapsed ? 'collapsed' : ''}`} style={sidebarStyle}>
-      <h3 className="fw-bold text-center mb-4 pt-3" style={{ color: '#60a5fa' }}>
+      <h3 className="fw-bold text-center mb-4 pt-3" style={{ color: '#f0abfc' }}>
         {isCollapsed ? '🩺' : 'MedCarePro'}
       </h3>
       <ul className="nav flex-column">
         <li className="nav-item mb-2">
           <NavLink to="/" className="nav-link-custom" end>
-            <HouseDoor className="me-2" style={{ color: '#93c5fd' }} /> 
+            <HouseDoor className="me-2" style={{ color: '#e9d5ff' }} /> 
             {!isCollapsed && 'Dashboard'}
           </NavLink>
         </li>
         <li className="nav-item mb-2">
           <NavLink to="/patients" className="nav-link-custom">
-            <People className="me-2" style={{ color: '#93c5fd' }} /> 
+            <People className="me-2" style={{ color: '#e9d5ff' }} /> 
             {!isCollapsed && 'Patients'}
           </NavLink>
         </li>
         <li className="nav-item mb-2">
           <NavLink to="/rdvs" className="nav-link-custom">
-            <CalendarCheck className="me-2" style={{ color: '#93c5fd' }} /> 
+            <CalendarCheck className="me-2" style={{ color: '#e9d5ff' }} /> 
             {!isCollapsed && 'Rendez-vous'}
           </NavLink>
         </li>
         <li className="nav-item mb-2">
           <NavLink to="/fiche-patient" className="nav-link-custom">
-            <FileEarmarkMedical className="me-2" style={{ color: '#93c5fd' }} /> 
+            <FileEarmarkMedical className="me-2" style={{ color: '#e9d5ff' }} /> 
             {!isCollapsed && 'Fiche patient'}
           </NavLink>
         </li>
         <li className="nav-item mb-2">
-          <NavLink to="/billing" className="nav-link-custom">
-            <Clipboard className="me-2" style={{ color: '#93c5fd' }} /> 
-            {!isCollapsed && 'Facturation'}
+          <NavLink to="/planning" className="nav-link-custom">
+            <Clipboard className="me-2" style={{ color: '#e9d5ff' }} /> 
+            {!isCollapsed && 'plan des rendez vous'}
           </NavLink>
         </li>
       </ul>
@@ -322,10 +527,10 @@ function Header({ onToggleSidebar, toggleTheme, theme }) {
   const [searchText, setSearchText] = useState('');
 
   const headerStyle = {
-    backgroundColor: theme === 'dark' ? '#0f172a' : '#ffffff',
-    color: theme === 'dark' ? 'white' : '#1e293b',
-    borderBottom: '1px solid rgba(148, 163, 184, 0.1)',
-    boxShadow: '0 0 20px rgba(0,0,0,0.05)'
+    background: theme === 'dark' ? '#1e1a2e' : 'white',
+    color: theme === 'dark' ? 'white' : '#4c1d95',
+    borderBottom: '1px solid rgba(167, 139, 250, 0.1)',
+    boxShadow: '0 0 20px rgba(139, 92, 246, 0.1)'
   };
 
   const handleSearch = (e) => {
@@ -339,12 +544,12 @@ function Header({ onToggleSidebar, toggleTheme, theme }) {
         <button 
           className={`btn btn-sm me-2 ${theme === 'dark' ? 'btn-outline-light' : 'btn-outline-primary'}`}
           onClick={onToggleSidebar}
-          style={{ border: 'none' }}
+          style={{ border: 'none', color: theme === 'dark' ? '#e9d5ff' : '#8b5cf6' }}
         >
-          <List style={{ color: theme === 'dark' ? 'white' : '#3b82f6' }} />
+          <List style={{ color: theme === 'dark' ? '#e9d5ff' : '#8b5cf6' }} />
         </button>
 
-        <h5 className="mb-0 d-none d-md-block" style={{ color: '#3b82f6' }}>
+        <h5 className="mb-0 d-none d-md-block" style={{ color: '#8b5cf6' }}>
           Dashboard Médical
         </h5>
       </div>
@@ -374,9 +579,9 @@ function Header({ onToggleSidebar, toggleTheme, theme }) {
             id="languageDropdown"
             data-bs-toggle="dropdown"
             aria-expanded="false"
-            style={{ border: 'none' }}
+            style={{ border: 'none', color: theme === 'dark' ? '#e9d5ff' : '#8b5cf6' }}
           >
-            <Globe className="me-1" style={{ color: theme === 'dark' ? 'white' : '#3b82f6' }} /> 
+            <Globe className="me-1" style={{ color: theme === 'dark' ? '#e9d5ff' : '#8b5cf6' }} /> 
             {langue === 'fr' ? 'FR' : 'EN'}
           </button>
           <ul className={`dropdown-menu ${theme === 'dark' ? 'bg-gray-800' : ''}`} aria-labelledby="languageDropdown">
@@ -389,11 +594,11 @@ function Header({ onToggleSidebar, toggleTheme, theme }) {
           className={`btn btn-sm ${theme === 'dark' ? 'btn-outline-light' : 'btn-outline-primary'}`}
           onClick={toggleTheme}
           title={theme === 'dark' ? 'Mode clair' : 'Mode sombre'}
-          style={{ border: 'none' }}
+          style={{ border: 'none', color: theme === 'dark' ? '#e9d5ff' : '#8b5cf6' }}
         >
           {theme === 'dark' ? 
-            <Sun style={{ color: 'white' }} /> : 
-            <Moon style={{ color: '#3b82f6' }} />}
+            <Sun style={{ color: '#e9d5ff' }} /> : 
+            <Moon style={{ color: '#8b5cf6' }} />}
         </button>
 
         <div className="dropdown">
@@ -403,10 +608,10 @@ function Header({ onToggleSidebar, toggleTheme, theme }) {
             id="profileDropdown"
             data-bs-toggle="dropdown"
             aria-expanded="false"
-            style={{ border: 'none' }}
+            style={{ border: 'none', color: theme === 'dark' ? '#e9d5ff' : '#8b5cf6' }}
           >
             <div className="position-relative">
-              <PersonCircle size={24} className="me-2" style={{ color: '#3b82f6' }} />
+              <PersonCircle size={24} className="me-2" style={{ color: '#8b5cf6' }} />
               <span className="position-absolute bottom-0 end-0 p-1 bg-success border border-light rounded-circle"></span>
             </div>
             <span className="fw-bold d-none d-md-inline">Mme Dupont</span>
@@ -425,11 +630,21 @@ function Header({ onToggleSidebar, toggleTheme, theme }) {
 
 function StatsCard({ icon, title, value, trend, theme, onClick }) {
   const cardStyle = {
-    backgroundColor: theme === 'dark' ? '#1e293b' : 'white',
-    color: theme === 'dark' ? 'white' : '#1e293b',
-    borderLeft: '0.25rem solid #3b82f6',
+    background: theme === 'dark' ? '#1e1a2e' : 'white',
+    color: theme === 'dark' ? 'white' : '#4c1d95',
+    borderLeft: '0.25rem solidrgb(11, 47, 228)',
     transition: 'all 0.3s ease',
-    cursor: onClick ? 'pointer' : 'default'
+    cursor: onClick ? 'pointer' : 'default',
+    boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
+    borderRadius: '12px',
+    border: theme === 'dark' ? '1px solid #3a2d5a' : '1px solid #f3e8ff'
+  };
+
+  const trendColors = {
+    rose: { bg: 'linear-gradient(135deg, #ec4899 0%, #d946ef 100%)', text: 'white' },
+    blue: { bg: 'linear-gradient(135deg,rgb(26, 36, 226) 0%,rgb(39, 42, 232) 100%)', text: 'white' },
+    success: { bg: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', text: 'white' },
+    info: { bg: 'linear-gradient(135deg, #06b6d4 0%, #0891b2 100%)', text: 'white' }
   };
 
   return (
@@ -437,7 +652,7 @@ function StatsCard({ icon, title, value, trend, theme, onClick }) {
       <div className="card-body">
         <div className="row align-items-center">
           <div className="col">
-            <div className="text-xs font-weight-bold text-uppercase mb-1" style={{ color: '#60a5fa' }}>
+            <div className="text-xs font-weight-bold text-uppercase mb-1" style={{ color: '#a78bfa' }}>
               {title}
             </div>
             <div className="h5 mb-0 font-weight-bold">
@@ -446,14 +661,12 @@ function StatsCard({ icon, title, value, trend, theme, onClick }) {
             {trend && (
               <div className="mt-2">
                 <span style={{
-                  background: trend.color === 'rose'
-                    ? 'linear-gradient(90deg, #f472b6, #ec4899)'
-                    : 'linear-gradient(90deg, #60a5fa, #3b82f6)',
+                  background: trendColors[trend.color]?.bg || trendColors.blue.bg,
                   padding: '4px 12px',
                   borderRadius: '999px',
                   fontSize: '0.8rem',
                   fontWeight: '600',
-                  color: 'white',
+                  color: trendColors[trend.color]?.text || 'white',
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: '6px',
@@ -466,8 +679,11 @@ function StatsCard({ icon, title, value, trend, theme, onClick }) {
             )}
           </div>
           <div className="col-auto">
-            <div className="icon-circle" style={{ backgroundColor: 'rgba(59, 130, 246, 0.1)' }}>
-              {React.cloneElement(icon, { style: { color: '#3b82f6' } })}
+            <div className="icon-circle" style={{ 
+              background: 'rgba(139, 92, 246, 0.1)',
+              color: '#8b5cf6'
+            }}>
+              {React.cloneElement(icon, { style: { color: '#8b5cf6' } })}
             </div>
           </div>
         </div>
@@ -477,20 +693,16 @@ function StatsCard({ icon, title, value, trend, theme, onClick }) {
 }
 
 function DashboardSecretary({ theme }) {
+  const [showAIModal, setShowAIModal] = useState(false);
   const [showDameIA, setShowDameIA] = useState(false);
-const [messageDame, setMessageDame] = useState('');
-
-  
+  const [messageDame, setMessageDame] = useState('');
   const [dailyPatientData, setDailyPatientData] = useState([]);
   const [showAvisStats, setShowAvisStats] = useState(false);
-
   const [showRdvStats, setShowRdvStats] = useState(false);
   const [rdvStatsData, setRdvStatsData] = useState(null);
   const [showPatientMap, setShowPatientMap] = useState(false);
   const [patients, setPatients] = useState([]);
   const [showTauxRemplissage, setShowTauxRemplissage] = useState(false);
-
-
   const [stats, setStats] = useState([
     { 
       icon: <People size={24} />, 
@@ -533,17 +745,28 @@ const [messageDame, setMessageDame] = useState('');
       } 
     }
   ]);
-
   const [appointments, setAppointments] = useState([]);
   const [doctors, setDoctors] = useState([]);
   const [nextAppointment, setNextAppointment] = useState(null);
   const [avisStats, setAvisStats] = useState(null);
   const [showPatientStats, setShowPatientStats] = useState(false);
   const [monthlyPatientData, setMonthlyPatientData] = useState([]);
+  const [datesPlanifiees, setDatesPlanifiees] = useState([]);
+
+  useEffect(() => {
+    axios.get('/api/planning-jours')
+      .then(response => {
+        const dates = response.data.map(planning => planning.date.split('T')[0]);
+        setDatesPlanifiees(dates);
+      })
+      .catch(error => {
+        console.error('Erreur lors de la récupération des dates', error);
+      });
+  }, []);
+
   const [loadingPatientStats, setLoadingPatientStats] = useState(false);
 
   useEffect(() => {
-    // Charger le nombre de patients
     axios.get('http://localhost:8000/api/patients')
       .then(response => {
         const patientCount = response.data.length;
@@ -565,13 +788,10 @@ const [messageDame, setMessageDame] = useState('');
         console.error("Erreur patients:", error);
         activerDameIA("Erreur lors du chargement des patients. Vérifiez votre connexion.");
       });
-      
 
-    // Charger les rendez-vous du jour
     axios.get('http://localhost:8000/api/rendezvous/tous')
       .then(response => {
         const todayAppointments = response.data.filter(rdv => {
-
           const rdvDate = new Date(rdv.planning_jour.date).toDateString();
           const today = new Date().toDateString();
           return rdvDate === today;
@@ -583,54 +803,51 @@ const [messageDame, setMessageDame] = useState('');
           const rdvDate = new Date(rdv.planning_jour.date).toDateString();
           return rdvDate === yesterday.toDateString();
         });
-        // 🧮 Calcul du taux de remplissage
-let totalMax = 0;
-let totalConfirmes = 0;
 
-response.data.forEach(rdv => {
-  const dateRdv = new Date(rdv.planning_jour.date).toDateString();
-  const today = new Date().toDateString();
+        let totalMax = 0;
+        let totalConfirmes = 0;
 
-  if (dateRdv === today) {
-    totalMax += rdv.planning_jour?.nombre_max_patients || 0;
-    if (rdv.statut === "confirmé") {
-      totalConfirmes++;
-    }
-  }
-});
+        response.data.forEach(rdv => {
+          const dateRdv = new Date(rdv.planning_jour.date).toDateString();
+          const today = new Date().toDateString();
 
-const taux = totalMax > 0 ? Math.round((totalConfirmes / totalMax) * 100) : 0;
+          if (dateRdv === today) {
+            totalMax += rdv.planning_jour?.nombre_max_patients || 0;
+            if (rdv.statut === "confirmé") {
+              totalConfirmes++;
+            }
+          }
+        });
 
-// 📊 Mettre à jour la carte
-setStats(prev => prev.map(stat =>
-  stat.title === "Taux de remplissage"
-    ? {
-        ...stat,
-        value: `${taux}%`,
-        trend: {
-          text: taux === 0 ? "Aucun patient" : taux === 100 ? "Complet" : "Encore des places",
-          color: taux === 100 ? 'success' : 'info',
-          icon: taux === 100 ? <GraphUp size={12} /> : <Activity size={12} />
+        const taux = totalMax > 0 ? Math.round((totalConfirmes / totalMax) * 100) : 0;
+
+        setStats(prev => prev.map(stat =>
+          stat.title === "Taux de remplissage"
+            ? {
+                ...stat,
+                value: `${taux}%`,
+                trend: {
+                  text: taux === 0 ? "Aucun patient" : taux === 100 ? "Complet" : "Encore des places",
+                  color: taux === 100 ? 'success' : 'info',
+                  icon: taux === 100 ? <GraphUp size={12} /> : <Activity size={12} />
+                }
+              }
+            : stat
+        ));
+
+        if ('speechSynthesis' in window) {
+          const synth = window.speechSynthesis;
+          const utterance = new SpeechSynthesisUtterance();
+
+          if (taux === 0) {
+            utterance.text = "Aucun patient enregistré aujourd'hui.";
+          } else {
+            utterance.text = `Le taux de remplissage aujourd'hui est de ${taux} pour cent.`;
+          }
+
+          utterance.lang = "fr-FR";
+          synth.speak(utterance);
         }
-      }
-    : stat
-));
-
-// 🔊 Lecture vocale
-if ('speechSynthesis' in window) {
-  const synth = window.speechSynthesis;
-  const utterance = new SpeechSynthesisUtterance();
-
-  if (taux === 0) {
-    utterance.text = "Aucun patient enregistré aujourd'hui.";
-  } else {
-    utterance.text = `Le taux de remplissage aujourd'hui est de ${taux} pour cent.`;
-  }
-
-  utterance.lang = "fr-FR";
-  synth.speak(utterance);
-}
-
         
         const pourcentageEvolution = yesterdayAppointments.length === 0
           ? 100
@@ -647,14 +864,13 @@ if ('speechSynthesis' in window) {
                   icon: (
                     pourcentageEvolution >= 0 
                       ? <GraphUp size={12} color="#ec4899" /> 
-                      : <GraphUp size={12} style={{ transform: 'rotate(180deg)', color: '#3b82f6' }} />
+                      : <GraphUp size={12} style={{ transform: 'rotate(180deg)', color: '#8b5cf6' }} />
                   )
                 } 
               } 
             : stat
         ));
 
-        // Prochain rendez-vous
         const upcoming = response.data
           .filter(rdv => new Date(rdv.planning_jour.date) >= new Date())
           .sort((a, b) => new Date(a.planning_jour.date) - new Date(b.planning_jour.date))[0];
@@ -670,42 +886,36 @@ if ('speechSynthesis' in window) {
       })
       .catch(error => console.error("Erreur rendez-vous:", error));
 
-// Charger les stats des avis
-axios.get('http://localhost:8000/api/avis/stats')
-  .then(response => {
-    const { tauxSatisfaction, tauxMecontentement, totalAvis } = response.data;
+    axios.get('http://localhost:8000/api/avis/stats')
+      .then(response => {
+        const { tauxSatisfaction, tauxMecontentement, totalAvis } = response.data;
 
-    // 🔊 Parle si supporté
-    if ('speechSynthesis' in window) {
-      const utterance = new SpeechSynthesisUtterance();
-      utterance.text = `Le taux de satisfaction est de ${Math.round(tauxSatisfaction)} pour cent`;
-      utterance.lang = 'fr-FR';
-      speechSynthesis.speak(utterance);
-    }
+        if ('speechSynthesis' in window) {
+          const utterance = new SpeechSynthesisUtterance();
+          utterance.text = `Le taux de satisfaction est de ${Math.round(tauxSatisfaction)} pour cent`;
+          utterance.lang = 'fr-FR';
+          speechSynthesis.speak(utterance);
+        }
 
-    // 🧠 Met à jour la carte
-    setStats(prev =>
-      prev.map(stat =>
-        stat.title === "Ambulances disponibles"
-          ? {
-              title: "Taux de satisfaction",
-              icon: <GraphUp size={24} />,
-              value: `${Math.round(tauxSatisfaction)}%`,
-              trend: {
-                text: `Basé sur ${totalAvis} avis`,
-                color: tauxSatisfaction > 70 ? 'success' : 'rose',
-                icon: <GraphUp size={12} />
-              }
-            }
-          : stat
-      )
-    );
-  })
-  .catch(error => console.error("Erreur avis :", error));
+        setStats(prev =>
+          prev.map(stat =>
+            stat.title === "Ambulances disponibles"
+              ? {
+                  title: "Taux de satisfaction",
+                  icon: <GraphUp size={24} />,
+                  value: `${Math.round(tauxSatisfaction)}%`,
+                  trend: {
+                    text: `Basé sur ${totalAvis} avis`,
+                    color: tauxSatisfaction > 70 ? 'success' : 'rose',
+                    icon: <GraphUp size={12} />
+                  }
+                }
+              : stat
+          )
+        );
+      })
+      .catch(error => console.error("Erreur avis :", error));
 
-
-
-    // Charger les médecins
     axios.get('http://localhost:8000/api/plannings')
       .then(response => {
         const uniqueDoctors = [];
@@ -724,19 +934,27 @@ axios.get('http://localhost:8000/api/avis/stats')
             });
           }
         });
+
+        uniqueDoctors.push({
+          id: 'ai-doctor',
+          name: "Dr. Intelligence IA",
+          specialty: "Assistant Médical IA",
+          rating: "5.0 ★",
+          description: "Assistant virtuel pour l'optimisation des opérations médicales",
+          image: "https://i.pinimg.com/originals/89/30/3d/89303d23215e753c2b618d1aac0a93a3.gif",
+          isAI: true
+        });
         
         setDoctors(uniqueDoctors);
       })
       .catch(error => console.error("Erreur médecins:", error));
 
-    // Charger les statistiques des avis
     axios.get('http://localhost:8000/api/avis/stats')
       .then(response => {
         setAvisStats(response.data);
       })
       .catch(error => console.error("Erreur avis:", error));
 
-    // Rendez-vous à venir pour l'affichage
     axios.get('http://localhost:8000/api/rendezvous/tous')
       .then(response => {
         const upcomingAppointments = response.data
@@ -753,14 +971,13 @@ axios.get('http://localhost:8000/api/avis/stats')
         setAppointments(upcomingAppointments);
       })
       .catch(error => console.error("Erreur rendez-vous:", error));
-      // Conseil IA du jour entre 8h et 12h
-setTimeout(() => {
-  const heure = new Date().getHours();
-  if (heure >= 8 && heure <= 12) {
-    genererConseilIA();
-  }
-}, 2000);
 
+    setTimeout(() => {
+      const heure = new Date().getHours();
+      if (heure >= 8 && heure <= 12) {
+        genererConseilIA();
+      }
+    }, 2000);
   }, []);
 
   useEffect(() => {
@@ -795,6 +1012,7 @@ setTimeout(() => {
   const handlePatientStatClick = () => {
     setShowPatientStats(true);
   };
+
   const activerDameIA = (message) => {
     const genererConseilIA = () => {
       if (!avisStats || !appointments || stats.length === 0) return;
@@ -810,21 +1028,18 @@ setTimeout(() => {
         return rdvDate.toDateString() === dateRdv.toDateString();
       });
     
-      // Satisfaction
       if (tauxSatisfaction >= 80) {
         messages.push(`Taux de satisfaction : ${tauxSatisfaction}%. Très bon travail !`);
       } else if (tauxSatisfaction < 60) {
         messages.push(`Attention, le taux de satisfaction est bas (${tauxSatisfaction}%). Consultez les avis récents.`);
       }
     
-      // Remplissage
       if (tauxRemplissage >= 90) {
         messages.push(`Planning très chargé aujourd’hui (${tauxRemplissage}%). Vous pourriez ajouter un médecin.`);
       } else if (tauxRemplissage <= 50) {
         messages.push(`Beaucoup de créneaux libres aujourd’hui (${tauxRemplissage}%). Relancez vos patients.`);
       }
     
-      // RDV demain
       if (rdvsDemain.length === 0) {
         messages.push(`Aucun rendez-vous pour demain. C’est peut-être le moment de relancer les patients.`);
       }
@@ -837,12 +1052,11 @@ setTimeout(() => {
       activerDameIA("Bonjour ! " + messageFinal);
     };
    
-    
     setMessageDame(message);
     setShowDameIA(true);
     setTimeout(() => {
       setShowDameIA(false);
-    }, 10000); // disparaît après 10s
+    }, 10000);
   };
   
   const handleRdvTodayClick = () => {
@@ -853,15 +1067,12 @@ setTimeout(() => {
       })
       .catch(error => console.error("Erreur chargement patients:", error));
   };
-  
 
   return (
     <div className="container-fluid">
-     
-
       <div className="d-sm-flex align-items-center justify-content-between mb-4">
-        <h1 className="h3 mb-0" style={{ color: theme === 'dark' ? 'white' : '#1e293b' }}>Tableau de bord</h1>
-        <button className={`d-none d-sm-inline-block btn btn-sm shadow-sm ${theme === 'dark' ? 'bg-blue-600 hover:bg-blue-700' : 'bg-blue-500 hover:bg-blue-600'} text-white`}>
+        <h1 className="h3 mb-0" style={{ color: theme === 'dark' ? 'white' : '#4c1d95' }}>Tableau de bord</h1>
+        <button className={`d-none d-sm-inline-block btn btn-sm shadow-sm ${theme === 'dark' ? 'bg-purple-600 hover:bg-purple-700' : 'bg-purple-500 hover:bg-purple-600'} text-white`}>
           <Plus size={16} className="me-1" />
           Générer un rapport
         </button>
@@ -875,18 +1086,17 @@ setTimeout(() => {
               title={stat.title} 
               value={stat.value} 
               trend={stat.trend}
-           onClick={
-  stat.title === "Patients enregistrés"
-    ? handlePatientStatClick
-    : stat.title === "Rendez-vous aujourd'hui"
-    ? handleRdvTodayClick
-    : stat.title === "Taux de remplissage"
-    ? () => setShowTauxRemplissage(true)
-    : stat.title === "Taux de satisfaction"
-    ? () => setShowAvisStats(true)
-    : undefined
-}
-
+              onClick={
+                stat.title === "Patients enregistrés"
+                  ? handlePatientStatClick
+                  : stat.title === "Rendez-vous aujourd'hui"
+                  ? handleRdvTodayClick
+                  : stat.title === "Taux de remplissage"
+                  ? () => setShowTauxRemplissage(true)
+                  : stat.title === "Taux de satisfaction"
+                  ? () => setShowAvisStats(true)
+                  : undefined
+              }
             />
           </div>
         ))}
@@ -895,48 +1105,36 @@ setTimeout(() => {
       <div className="row">
         <div className="col-xl-8 col-lg-7">
           <div className="card shadow mb-4" style={{ 
-            backgroundColor: theme === 'dark' ? '#1e293b' : 'white',
-            border: 'none'
+            backgroundColor: theme === 'dark' ? '#1e1a2e' : 'white',
+            border: 'none',
+            borderRadius: '16px'
           }}>
             <div className="card-header py-3 d-flex flex-row align-items-center justify-content-between" style={{ 
-              backgroundColor: theme === 'dark' ? '#0f172a' : '#f8fafc',
-              borderBottom: '1px solid rgba(148, 163, 184, 0.1)'
+              background: 'linear-gradient(135deg,rgb(80, 12, 241) 0%, #ec4899 100%)',
+              borderBottom: 'none',
+              borderTopLeftRadius: '16px',
+              borderTopRightRadius: '16px'
             }}>
-              <h6 className="m-0 font-weight-bold" style={{ color: '#3b82f6' }}>Visites mensuelles</h6>
-              {avisStats && (
-                <div className="d-flex gap-3">
-                  <small className="text-success">
-                    <i className="fas fa-arrow-up me-1"></i>
-                    {avisStats.tauxSatisfaction.toFixed(1)}% Satisfaction
-                  </small>
-                  <small className="text-danger">
-                    <i className="fas fa-arrow-down me-1"></i>
-                    {avisStats.tauxMecontentement.toFixed(1)}% Mécontentement
-                  </small>
-                </div>
-              )}
+              <h6 className="m-0 font-weight-bold text-white">Dates planifiées (Calendrier)</h6>
             </div>
             <div className="card-body">
               <div className="chart-area">
                 <div style={{ 
-                  height: '320px', 
-                  backgroundColor: theme === 'dark' ? '#1e293b' : '#f8fafc',
+                  height: 'auto', 
+                  backgroundColor: theme === 'dark' ? '#1e1a2e' : '#f5f3ff',
                   borderRadius: '0.5rem',
-                  backgroundImage: 'url(https://via.placeholder.com/800x400?text=Hospital+Visits+Chart)',
-                  backgroundSize: 'cover',
-                  backgroundPosition: 'center'
+                  padding: '1rem'
                 }}>
-                  <div className="d-flex justify-content-center align-items-center h-100">
-                    <div className="text-center p-4" style={{ 
-                      backgroundColor: theme === 'dark' ? 'rgba(15, 23, 42, 0.8)' : 'rgba(255, 255, 255, 0.8)',
-                      borderRadius: '0.5rem'
-                    }}>
-                      <h5 style={{ color: theme === 'dark' ? 'white' : '#1e293b' }}>Statistiques des visites</h5>
-                      <p className="mb-0" style={{ color: theme === 'dark' ? '#94a3b8' : '#64748b' }}>
-                        Visualisation des données mensuelles des patients
-                      </p>
-                    </div>
-                  </div>
+                  <Calendar
+                    tileClassName={({ date, view }) => {
+                      if (view === 'month') {
+                        const dateStr = date.toISOString().split('T')[0];
+                        return datesPlanifiees.includes(dateStr) ? 'bg-purple-500 text-white rounded' : '';
+                      }
+                      return '';
+                    }}
+                    className={theme === 'dark' ? 'bg-gray-800 text-white' : ''}
+                  />
                 </div>
               </div>
             </div>
@@ -945,16 +1143,18 @@ setTimeout(() => {
 
         <div className="col-xl-4 col-lg-5">
           <div className="card shadow mb-4" style={{ 
-            backgroundColor: theme === 'dark' ? '#1e293b' : 'white',
-            border: 'none'
+            backgroundColor: theme === 'dark' ? '#1e1a2e' : 'white',
+            border: 'none',
+            borderRadius: '16px'
           }}>
             <div className="card-header py-3 d-flex flex-row align-items-center justify-content-between" style={{ 
-              backgroundColor: theme === 'dark' ? '#0f172a' : '#f8fafc',
-              borderBottom: '1px solid rgba(148, 163, 184, 0.1)'
+              background: 'linear-gradient(135deg,rgb(80, 10, 244) 0%, #ec4899 100%)',
+              borderBottom: 'none',
+              borderTopLeftRadius: '16px',
+              borderTopRightRadius: '16px'
             }}>
-              <h6 className="m-0 font-weight-bold" style={{ color: '#3b82f6' }}>Rendez-vous à venir</h6>
-              
-              <span className="badge bg-blue-500">{appointments.length}</span>
+              <h6 className="m-0 font-weight-bold text-white">Rendez-vous à venir</h6>
+              <span className="badge bg-pink-200 text-purple-800">{appointments.length}</span>
             </div>
             <div className="card-body">
               {appointments.length > 0 ? (
@@ -963,12 +1163,12 @@ setTimeout(() => {
                     <div className="d-flex align-items-center">
                       <div className={`me-3 p-2 rounded text-center ${theme === 'dark' ? 'bg-gray-800' : 'bg-gray-100'}`} style={{ minWidth: '60px' }}>
                         <div className="font-weight-bold">{appointment.time}</div>
-                        <div className="small text-xs" style={{ color: theme === 'dark' ? '#94a3b8' : '#64748b' }}>
+                        <div className="small text-xs" style={{ color: theme === 'dark' ? '#a78bfa' : '#7e22ce' }}>
                           {appointment.type}
                         </div>
                       </div>
                       <div className="flex-grow-1">
-                        <div className="font-weight-bold" style={{ color: theme === 'dark' ? 'white' : '#1e293b' }}>
+                        <div className="font-weight-bold" style={{ color: theme === 'dark' ? 'white' : '#4c1d95' }}>
                           {appointment.name}
                         </div>
                         <div className={`badge ${appointment.type === 'Confirmé' ? 'bg-green-500' : 'bg-yellow-500'} text-white`}>
@@ -988,52 +1188,86 @@ setTimeout(() => {
           </div>
         </div>
       </div>
+      
       <div className="row mt-3">
-  <div className="col-lg-12">
-    <AlerteSanitaire />
-  </div>
-</div>
-
+        <div className="col-lg-12">
+          <AlerteSanitaire />
+        </div>
+      </div>
 
       <div className="row">
         <div className="col-lg-6 mb-4">
           <div className="card shadow mb-4" style={{ 
-            backgroundColor: theme === 'dark' ? '#1e293b' : 'white',
-            border: 'none'
+            backgroundColor: theme === 'dark' ? '#1e1a2e' : 'white',
+            border: 'none',
+            borderRadius: '16px'
           }}>
             <div className="card-header py-3" style={{ 
-              backgroundColor: theme === 'dark' ? '#0f172a' : '#f8fafc',
-              borderBottom: '1px solid rgba(148, 163, 184, 0.1)'
+              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+              borderBottom: 'none',
+              borderTopLeftRadius: '16px',
+              borderTopRightRadius: '16px'
             }}>
-              <h6 className="m-0 font-weight-bold" style={{ color: '#3b82f6' }}>Liste des médecins</h6>
+              <h6 className="m-0 font-weight-bold text-white">Liste des médecins</h6>
             </div>
             <div className="card-body">
               {doctors.length > 0 ? (
                 doctors.map(doctor => (
                   <div key={doctor.id} className="mb-4">
-                    <div className="d-flex align-items-start">
+                    <div className="d-flex align-items-start" 
+                         style={doctor.isAI ? { 
+                           cursor: 'pointer',
+                           background: theme === 'dark' ? 'linear-gradient(45deg, #1a1a2e, #16213e)' : 'linear-gradient(45deg, #f8f5ff, #f3e8ff)',
+                           borderRadius: '12px',
+                           padding: '15px',
+                           transition: 'transform 0.3s ease',
+                           border: theme === 'dark' ? '1px solid #3a2d5a' : '1px solid #e9d8ff'
+                         } : {}}
+                         onClick={doctor.isAI ? () => setShowAIModal(true) : undefined}>
                       <div className="me-3">
                         <img 
                           src={doctor.image} 
                           alt={doctor.name} 
-                          className="rounded-circle" 
-                          style={{ width: '50px', height: '50px', objectFit: 'cover' }}
+                          className={doctor.isAI ? "rounded-circle border-purple" : "rounded-circle"} 
+                          style={{ 
+                            width: '50px', 
+                            height: '50px', 
+                            objectFit: 'cover',
+                            border: doctor.isAI ? '2px solid #8b5cf6' : 'none'
+                          }}
                         />
                       </div>
                       <div className="flex-grow-1">
                         <div className="d-flex justify-content-between">
-                          <h6 className="font-weight-bold mb-1" style={{ color: theme === 'dark' ? 'white' : '#1e293b' }}>
+                          <h6 className="font-weight-bold mb-1" style={{ 
+                            color: doctor.isAI ? '#8b5cf6' : (theme === 'dark' ? 'white' : '#4c1d95')
+                          }}>
                             {doctor.name}
+                            {doctor.isAI && <span className="badge bg-pink-500 text-white ms-2">Nouveau</span>}
                           </h6>
-                          <div className="badge bg-yellow-500 text-white">
-                            {doctor.rating} ★
+                          <div className={`badge ${doctor.isAI ? 'bg-purple-500' : 'bg-yellow-500'} text-white`}>
+                            {doctor.rating}
                           </div>
                         </div>
-                        <div className="small mb-2" style={{ color: theme === 'dark' ? '#94a3b8' : '#64748b' }}>
+                        <div className="small mb-2" style={{ 
+                          color: doctor.isAI ? '#c4b5fd' : (theme === 'dark' ? '#a78bfa' : '#7e22ce')
+                        }}>
                           {doctor.specialty}
                         </div>
-                        <p className="small mb-0" style={{ color: theme === 'dark' ? '#cbd5e1' : '#475569' }}>
+                        <p className="small mb-0" style={{ 
+                          color: doctor.isAI ? '#a78bfa' : (theme === 'dark' ? '#c4b5fd' : '#6b21a8')
+                        }}>
                           {doctor.description}
+                          {doctor.isAI && (
+                            <button className="btn btn-link p-0 ms-2" 
+                                    style={{ color: '#8b5cf6' }}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setShowAIModal(true);
+                                    }}>
+                              Voir conseils
+                            </button>
+                          )}
                         </p>
                       </div>
                     </div>
@@ -1054,16 +1288,24 @@ setTimeout(() => {
         </div>
       </div>
 
+      {showAIModal && <ConseilsIA theme={theme} onClose={() => setShowAIModal(false)} />}
+
       {showPatientStats && (
         <div className="modal-backdrop show">
           <div className="modal-container" style={{
-            backgroundColor: theme === 'dark' ? '#1e293b' : 'white',
-            border: theme === 'dark' ? '1px solid #334155' : '1px solid #e2e8f0',
-            boxShadow: theme === 'dark' ? '0 0 30px rgba(0,0,0,0.5)' : '0 0 30px rgba(0,0,0,0.2)'
+            background: theme === 'dark' ? '#1e1a2e' : 'white',
+            border: theme === 'dark' ? '1px solid #3a2d5a' : '1px solid #f3e8ff',
+            boxShadow: theme === 'dark' ? '0 0 30px rgba(139, 92, 246, 0.3)' : '0 0 30px rgba(139, 92, 246, 0.2)',
+            borderRadius: '16px'
           }}>
-            <div className="modal-header">
-              <h3 style={{ color: theme === 'dark' ? 'white' : '#1e293b' }}>Statistiques Mensuelles des Patients</h3>
-              <button onClick={() => setShowPatientStats(false)} className="close-btn" style={{ color: theme === 'dark' ? '#94a3b8' : '#64748b' }}>
+            <div className="modal-header" style={{ 
+              background: 'linear-gradient(135deg,rgb(77, 11, 231) 0%, #ec4899 100%)',
+              borderBottom: 'none',
+              borderTopLeftRadius: '16px',
+              borderTopRightRadius: '16px'
+            }}>
+              <h3 className="text-white">Statistiques Mensuelles des Patients</h3>
+              <button onClick={() => setShowPatientStats(false)} className="close-btn text-white">
                 &times;
               </button>
             </div>
@@ -1080,7 +1322,7 @@ setTimeout(() => {
                   </div>
                   
                   <div className="stats-summary">
-                    <div className="summary-card" style={{ borderColor: '#3b82f6' }}>
+                    <div className="summary-card" style={{ borderColor: '#8b5cf6' }}>
                       <h4>Total Annuel</h4>
                       <p>{monthlyPatientData.reduce((sum, data) => sum + data.count, 0)}</p>
                     </div>
@@ -1102,7 +1344,7 @@ setTimeout(() => {
                 onClick={() => setShowPatientStats(false)} 
                 className="close-button"
                 style={{
-                  backgroundColor: theme === 'dark' ? '#3b82f6' : '#3b82f6',
+                  background: 'linear-gradient(135deg,rgb(74, 8, 229) 0%, #ec4899 100%)',
                   color: 'white'
                 }}
               >
@@ -1112,220 +1354,243 @@ setTimeout(() => {
           </div>
         </div>
       )}
+      
       {showPatientMap && (
-  <div className="modal-backdrop show">
-    <div className="modal-container" style={{
-      backgroundColor: theme === 'dark' ? '#1e293b' : 'white',
-      border: theme === 'dark' ? '1px solid #334155' : '1px solid #e2e8f0',
-      boxShadow: theme === 'dark' ? '0 0 30px rgba(0,0,0,0.5)' : '0 0 30px rgba(0,0,0,0.2)',
-      maxWidth: '90%',
-      width: '1000px'
-    }}>
-   <div className="modal-header">
-        <h3 style={{ color: theme === 'dark' ? 'white' : '#1e293b' }}>
-          🌍 Carte Interactive des Patients
-        </h3>
-        <button 
-          onClick={() => setShowPatientMap(false)} 
-          className="close-btn" 
-          style={{ color: theme === 'dark' ? '#94a3b8' : '#64748b' }}
-        >
-          &times;
-        </button>
-      </div>
-      
-      <div className="modal-body">
-        <PatientMap patients={patients} theme={theme} />
-      </div>
-      
-      
-      <div className="modal-footer">
-        <button 
-          onClick={() => setShowPatientMap(false)} 
-          className="close-button"
-          style={{
-            backgroundColor: theme === 'dark' ? '#3b82f6' : '#3b82f6',
-            color: 'white'
-          }}
-        >
-          Fermer
-        </button>
-        
-      </div>
-
-    </div>
-
-  </div>
-)}
-{showTauxRemplissage && (
-  <div className="modal-backdrop show">
-    <div className="modal-container" style={{
-      backgroundColor: theme === 'dark' ? '#1e293b' : 'white',
-      border: theme === 'dark' ? '1px solid #334155' : '1px solid #e2e8f0',
-      boxShadow: theme === 'dark' ? '0 0 30px rgba(0,0,0,0.5)' : '0 0 30px rgba(0,0,0,0.2)',
-      maxWidth: '90%',
-      width: '700px'
-    }}>
-      <div className="modal-header">
-        <h3 style={{ color: theme === 'dark' ? 'white' : '#1e293b' }}>
-          📊 Taux de remplissage aujourd’hui
-        </h3>
-        <button 
-          onClick={() => setShowTauxRemplissage(false)} 
-          className="close-btn" 
-          style={{ color: theme === 'dark' ? '#94a3b8' : '#64748b' }}
-        >
-          &times;
-        </button>
-      </div>
-      
-      <div className="modal-body">
-        <TauxRemplissage />
-      </div>
-      
-      <div className="modal-footer">
-        <button 
-          onClick={() => setShowTauxRemplissage(false)} 
-          className="close-button"
-          style={{
-            backgroundColor: theme === 'dark' ? '#3b82f6' : '#3b82f6',
-            color: 'white'
-          }}
-        >
-          Fermer
-        </button>
-      </div>
-    </div>
-  </div>
-)}
-{showAvisStats && (
-  <div className="modal-backdrop show" style={{
-    position: "fixed",
-    top: 0, left: 0, right: 0, bottom: 0,
-    backgroundColor: "rgba(0,0,0,0.6)",
-    display: "flex",
-    justifyContent: "center",
-    alignItems: "center",
-    zIndex: 1050
-  }}>
-    <div className="modal-container animate__animated animate__fadeInUp" style={{
-      background: "linear-gradient(145deg, #fce3ec, #deeafc)",
-      borderRadius: "20px",
-      padding: "25px",
-      width: "95%",
-      maxWidth: "600px",
-      boxShadow: "0 10px 30px rgba(0,0,0,0.2)",
-      color: "#1f2937",
-      fontFamily: "Segoe UI, sans-serif"
-    }}>
-      <div className="modal-header d-flex justify-content-between align-items-center">
-        <h3 style={{ fontWeight: 'bold', fontSize: '1.5rem', color: "#6b21a8" }}>
-          💬 Analyse des Avis Patients
-        </h3>
-        <button 
-          onClick={() => setShowAvisStats(false)} 
-          style={{
-            background: "transparent",
-            border: "none",
-            fontSize: "1.5rem",
-            color: "#6b7280",
-            cursor: "pointer"
-          }}
-        >
-          &times;
-        </button>
-      </div>
-
-      <div className="modal-body mt-4">
-        {avisStats ? (
-          <div className="text-center">
-            <p style={{ fontSize: '1.1rem' }}><strong>Total d'avis :</strong> {avisStats.totalAvis}</p>
-            <p style={{ fontSize: '1.1rem' }}><strong>Taux de satisfaction :</strong> <span style={{ color: "#10b981" }}>{Math.round(avisStats.tauxSatisfaction)}%</span></p>
-            <p style={{ fontSize: '1.1rem' }}><strong>Taux de mécontentement :</strong> <span style={{ color: "#ef4444" }}>{Math.round(avisStats.tauxMecontentement)}%</span></p>
-
-            <div className="progress mt-4" style={{ height: "25px", borderRadius: "12px", overflow: "hidden" }}>
-              <div className="progress-bar" role="progressbar"
+        <div className="modal-backdrop show">
+          <div className="modal-container" style={{
+            backgroundColor: theme === 'dark' ? '#1e1a2e' : 'white',
+            border: theme === 'dark' ? '1px solid #3a2d5a' : '1px solid #f3e8ff',
+            boxShadow: theme === 'dark' ? '0 0 30px rgba(139, 92, 246, 0.3)' : '0 0 30px rgba(139, 92, 246, 0.2)',
+            maxWidth: '90%',
+            width: '1000px',
+            borderRadius: '16px'
+          }}>
+            <div className="modal-header" style={{ 
+              background: 'linear-gradient(135deg,rgb(80, 12, 238) 0%, #ec4899 100%)',
+              borderBottom: 'none',
+              borderTopLeftRadius: '16px',
+              borderTopRightRadius: '16px'
+            }}>
+              <h3 className="text-white">
+                🌍 Carte Interactive des Patients
+              </h3>
+              <button 
+                onClick={() => setShowPatientMap(false)} 
+                className="close-btn text-white"
+              >
+                &times;
+              </button>
+            </div>
+            
+            <div className="modal-body">
+              <PatientMap patients={patients} theme={theme} />
+            </div>
+            
+            <div className="modal-footer">
+              <button 
+                onClick={() => setShowPatientMap(false)} 
+                className="close-button"
                 style={{
-                  width: `${avisStats.tauxSatisfaction}%`,
-                  background: "linear-gradient(90deg, #10b981, #34d399)",
-                  fontWeight: "bold",
-                  color: "white"
-                }}>
-                {Math.round(avisStats.tauxSatisfaction)}%
-              </div>
-              <div className="progress-bar" role="progressbar"
-                style={{
-                  width: `${avisStats.tauxMecontentement}%`,
-                  background: "linear-gradient(90deg, #f43f5e, #ec4899)",
-                  fontWeight: "bold",
-                  color: "white"
-                }}>
-                {Math.round(avisStats.tauxMecontentement)}%
-              </div>
+                  background: 'linear-gradient(135deg,rgb(78, 15, 226) 0%, #ec4899 100%)',
+                  color: 'white'
+                }}
+              >
+                Fermer
+              </button>
             </div>
           </div>
-        ) : (
-          <p className="text-center">Chargement des données...</p>
-        )}
-      </div>
+        </div>
+      )}
+      
+      {showTauxRemplissage && (
+        <div className="modal-backdrop show">
+          <div className="modal-container" style={{
+            backgroundColor: theme === 'dark' ? '#1e1a2e' : 'white',
+            border: theme === 'dark' ? '1px solid #3a2d5a' : '1px solid #f3e8ff',
+            boxShadow: theme === 'dark' ? '0 0 30px rgba(139, 92, 246, 0.3)' : '0 0 30px rgba(139, 92, 246, 0.2)',
+            maxWidth: '90%',
+            width: '700px',
+            borderRadius: '16px'
+          }}>
+            <div className="modal-header" style={{ 
+              background: 'linear-gradient(135deg,rgb(75, 3, 243)20, 239) 0%, #ec4899 100%)',
+              borderBottom: 'none',
+              borderTopLeftRadius: '16px',
+              borderTopRightRadius: '16px'
+            }}>
+              <h3 className="text-white">
+                📊 Taux de remplissage aujourd’hui
+              </h3>
+              <button 
+                onClick={() => setShowTauxRemplissage(false)} 
+                className="close-btn text-white"
+              >
+                &times;
+              </button>
+            </div>
+            
+            <div className="modal-body">
+              <TauxRemplissage />
+            </div>
+            
+            <div className="modal-footer">
+              <button 
+                onClick={() => setShowTauxRemplissage(false)} 
+                className="close-button"
+                style={{
+                  background: 'linear-gradient(135deg,rgb(81, 12, 242) 0%, #ec4899 100%)',
+                  color: 'white'
+                }}
+              >
+                Fermer
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {showAvisStats && (
+        <div className="modal-backdrop show" style={{
+          position: "fixed",
+          top: 0, left: 0, right: 0, bottom: 0,
+          backgroundColor: "rgba(0,0,0,0.6)",
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          zIndex: 1050
+        }}>
+          <div className="modal-container animate__animated animate__fadeInUp" style={{
+            background: "linear-gradient(145deg, #fdf4ff, #f5f3ff)",
+            borderRadius: "20px",
+            padding: "25px",
+            width: "95%",
+            maxWidth: "600px",
+            boxShadow: "0 10px 30px rgba(0,0,0,0.2)",
+            color: "#1f2937",
+            fontFamily: "Segoe UI, sans-serif"
+          }}>
+            <div className="modal-header d-flex justify-content-between align-items-center">
+              <h3 style={{ fontWeight: 'bold', fontSize: '1.5rem', color: "#6b21a8" }}>
+                💬 Analyse des Avis Patients
+              </h3>
+              <button 
+                onClick={() => setShowAvisStats(false)} 
+                style={{
+                  background: "transparent",
+                  border: "none",
+                  fontSize: "1.5rem",
+                  color: "#6b7280",
+                  cursor: "pointer"
+                }}
+              >
+                &times;
+              </button>
+            </div>
 
-      <div className="modal-footer text-center mt-4">
-        <button 
-          onClick={() => setShowAvisStats(false)} 
-          style={{
-            padding: "10px 20px",
-            background: "linear-gradient(to right, #9333ea, #3b82f6)",
-            color: "white",
-            border: "none",
-            borderRadius: "8px",
-            fontSize: "1rem",
-            fontWeight: "600",
-            cursor: "pointer",
-            boxShadow: "0 4px 12px rgba(0,0,0,0.2)"
-          }}
-        >
-          Fermer
-        </button>
-      </div>
+            <div className="modal-body mt-4">
+              {avisStats ? (
+                <div className="text-center">
+                  <p style={{ fontSize: '1.1rem' }}><strong>Total d'avis :</strong> {avisStats.totalAvis}</p>
+                  <p style={{ fontSize: '1.1rem' }}><strong>Taux de satisfaction :</strong> <span style={{ color: "#10b981" }}>{Math.round(avisStats.tauxSatisfaction)}%</span></p>
+                  <p style={{ fontSize: '1.1rem' }}><strong>Taux de mécontentement :</strong> <span style={{ color: "#ef4444" }}>{Math.round(avisStats.tauxMecontentement)}%</span></p>
+
+                  <div className="progress mt-4" style={{ height: "25px", borderRadius: "12px", overflow: "hidden" }}>
+                    <div className="progress-bar" role="progressbar"
+                      style={{
+                        width: `${avisStats.tauxSatisfaction}%`,
+                        background: "linear-gradient(90deg, #10b981, #34d399)",
+                        fontWeight: "bold",
+                        color: "white"
+                      }}>
+                      {Math.round(avisStats.tauxSatisfaction)}%
+                    </div>
+                    <div className="progress-bar" role="progressbar"
+                      style={{
+                        width: `${avisStats.tauxMecontentement}%`,
+                        background: "linear-gradient(90deg, #f43f5e, #ec4899)",
+                        fontWeight: "bold",
+                        color: "white"
+                      }}>
+                      {Math.round(avisStats.tauxMecontentement)}%
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <p className="text-center">Chargement des données...</p>
+              )}
+            </div>
+
+            <div className="modal-footer text-center mt-4">
+              <button 
+                onClick={() => setShowAvisStats(false)} 
+                style={{
+                  padding: "10px 20px",
+                  background: "linear-gradient(to right,rgb(51, 51, 234), #3b82f6)",
+                  color: "white",
+                  border: "none",
+                  borderRadius: "8px",
+                  fontSize: "1rem",
+                  fontWeight: "600",
+                  cursor: "pointer",
+                  boxShadow: "0 4px 12px rgba(0,0,0,0.2)"
+                }}
+              >
+                Fermer
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <DameIAContextuelle 
+        visible={showDameIA}
+        message={messageDame}
+        onClose={() => setShowDameIA(false)}
+      />
+      <button
+        onClick={() => activerDameIA("Bonjour, je suis votre assistante IA. Besoin d'aide ?")}
+        style={{ 
+          position: 'fixed', 
+          bottom: 100, 
+          right: 20, 
+          zIndex: 10001,
+          background: 'linear-gradient(135deg,rgb(16, 20, 240) 0%, #ec4899 100%)',
+          color: 'white',
+          border: 'none',
+          borderRadius: '50%',
+          width: '60px',
+          height: '60px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          boxShadow: '0 4px 12px rgba(139, 92, 246, 0.3)'
+        }}
+      >
+        IA
+      </button>
     </div>
-  </div>
-)}
-
-<DameIAContextuelle 
-  visible={showDameIA}
-  message={messageDame}
-  onClose={() => setShowDameIA(false)}
-/>
-<button
-  onClick={() => activerDameIA("Bonjour, je suis votre assistante IA. Besoin d’aide ?")}
-  style={{ position: 'fixed', bottom: 100, right: 20, zIndex: 10001 }}
->
-  Test IA
-</button>
-
-
-    </div>
-
   );
-  
 }
 
 function FichePatient({ theme }) {
   const iframeStyle = {
-    backgroundColor: theme === 'dark' ? '#1e293b' : 'white'
+    backgroundColor: theme === 'dark' ? '#1e1a2e' : 'white'
   };
 
   return (
     <div className="card shadow" style={{ 
-      backgroundColor: theme === 'dark' ? '#1e293b' : 'white', 
+      backgroundColor: theme === 'dark' ? '#1e1a2e' : 'white', 
       color: theme === 'dark' ? 'white' : 'inherit',
-      border: 'none'
+      border: 'none',
+      borderRadius: '16px'
     }}>
       <div className="card-header py-3" style={{ 
-        backgroundColor: theme === 'dark' ? '#0f172a' : '#f8fafc',
-        borderBottom: '1px solid rgba(148, 163, 184, 0.1)'
+        background: 'linear-gradient(135deg,rgb(24, 21, 247) 0%, #ec4899 100%)',
+        borderBottom: 'none',
+        borderTopLeftRadius: '16px',
+        borderTopRightRadius: '16px'
       }}>
-        <h5 className="m-0 font-weight-bold" style={{ color: '#3b82f6' }}>Fiche Patient</h5>
+        <h5 className="m-0 font-weight-bold text-white">Fiche Patient</h5>
       </div>
       <div className="card-body">
         <iframe
@@ -1344,24 +1609,25 @@ function FichePatient({ theme }) {
   );
 }
 
-
-
 function Rdvs({ theme }) {
   const iframeStyle = {
-    backgroundColor: theme === 'dark' ? '#1e293b' : 'white'
+    backgroundColor: theme === 'dark' ? '#1e1a2e' : 'white'
   };
 
   return (
     <div className="card shadow" style={{ 
-      backgroundColor: theme === 'dark' ? '#1e293b' : 'white', 
+      backgroundColor: theme === 'dark' ? '#1e1a2e' : 'white', 
       color: theme === 'dark' ? 'white' : 'inherit',
-      border: 'none'
+      border: 'none',
+      borderRadius: '16px'
     }}>
       <div className="card-header py-3" style={{ 
-        backgroundColor: theme === 'dark' ? '#0f172a' : '#f8fafc',
-        borderBottom: '1px solid rgba(148, 163, 184, 0.1)'
+        background: 'linear-gradient(135deg,rgb(84, 17, 239) 0%, #ec4899 100%)',
+        borderBottom: 'none',
+        borderTopLeftRadius: '16px',
+        borderTopRightRadius: '16px'
       }}>
-        <h5 className="m-0 font-weight-bold" style={{ color: '#3b82f6' }}>Rendez-vous</h5>
+        <h5 className="m-0 font-weight-bold text-white">Rendez-vous</h5>
       </div>
       <div className="card-body">
         <iframe
@@ -1408,16 +1674,19 @@ function PatientsList({ theme }) {
 
   return (
     <div className="card shadow" style={{ 
-      backgroundColor: theme === 'dark' ? '#1e293b' : 'white', 
+      backgroundColor: theme === 'dark' ? '#1e1a2e' : 'white', 
       color: theme === 'dark' ? 'white' : 'inherit',
-      border: 'none'
+      border: 'none',
+      borderRadius: '16px'
     }}>
       <div className="card-header py-3 d-flex justify-content-between align-items-center" style={{ 
-        backgroundColor: theme === 'dark' ? '#0f172a' : '#f8fafc',
-        borderBottom: '1px solid rgba(148, 163, 184, 0.1)'
+        background: 'linear-gradient(135deg,rgb(80, 16, 231) 0%, #ec4899 100%)',
+        borderBottom: 'none',
+        borderTopLeftRadius: '16px',
+        borderTopRightRadius: '16px'
       }}>
-        <h5 className="m-0 font-weight-bold" style={{ color: '#3b82f6' }}>Liste des Patients</h5>
-        <button className={`btn btn-sm ${theme === 'dark' ? 'bg-blue-600 hover:bg-blue-700' : 'bg-blue-500 hover:bg-blue-600'} text-white`}>
+        <h5 className="m-0 font-weight-bold text-white">Liste des Patients</h5>
+        <button className={`btn btn-sm ${theme === 'dark' ? 'bg-purple-600 hover:bg-purple-700' : 'bg-purple-500 hover:bg-purple-600'} text-white`}>
           <Plus size={16} className="me-1" />
           Ajouter un patient
         </button>
@@ -1441,7 +1710,7 @@ function PatientsList({ theme }) {
                   <th>Adresse</th>
                   <th>Date de naissance</th>
                   <th>Inscrit le</th>
-                  <th>Actions</th>
+                 
                 </tr>
               </thead>
               <tbody>
@@ -1452,12 +1721,12 @@ function PatientsList({ theme }) {
                         <div className="rounded-circle me-3" style={{ 
                           width: '40px', 
                           height: '40px', 
-                          backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                          backgroundColor: 'rgba(139, 92, 246, 0.1)',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center'
                         }}>
-                          <PersonCircle size={20} style={{ color: '#3b82f6' }} />
+                          <PersonCircle size={20} style={{ color: '#8b5cf6' }} />
                         </div>
                         <div>
                           <div className="fw-bold">{patient.name}</div>
@@ -1473,12 +1742,7 @@ function PatientsList({ theme }) {
                     <td>{patient.date_naissance}</td>
                     <td>{formatDate(patient.created_at)}</td>
                     <td>
-                      <button className="btn btn-sm btn-outline-primary me-2">
-                        Voir
-                      </button>
-                      <button className="btn btn-sm btn-outline-secondary">
-                        Éditer
-                      </button>
+                     
                     </td>
                   </tr>
                 ))}
@@ -1486,6 +1750,43 @@ function PatientsList({ theme }) {
             </table>
           </div>
         )}
+      </div>
+    </div>
+  );
+}
+
+function Planning({ theme }) {
+  const iframeStyle = {
+    backgroundColor: theme === 'dark' ? '#1e1a2e' : 'white'
+  };
+
+  return (
+    <div className="card shadow" style={{ 
+      backgroundColor: theme === 'dark' ? '#1e1a2e' : 'white', 
+      color: theme === 'dark' ? 'white' : 'inherit',
+      border: 'none',
+      borderRadius: '16px'
+    }}>
+      <div className="card-header py-3" style={{ 
+        background: 'linear-gradient(135deg,rgb(84, 17, 239) 0%, #ec4899 100%)',
+        borderBottom: 'none',
+        borderTopLeftRadius: '16px',
+        borderTopRightRadius: '16px'
+      }}>
+        <h5 className="m-0 font-weight-bold text-white">Planning des rendez-vous</h5>
+      </div>
+      <div className="card-body">
+        <iframe
+          src="http://127.0.0.1:8000/planning"
+          style={{
+            width: '100%',
+            height: '80vh',
+            border: 'none',
+            borderRadius: '0.35rem',
+            ...iframeStyle
+          }}
+          title="Planning des rendez-vous"
+        ></iframe>
       </div>
     </div>
   );
@@ -1533,6 +1834,7 @@ function Layout() {
               <Route path="/rdvs" element={<Rdvs theme={theme} />} />
               <Route path="/patients" element={<PatientsList theme={theme} />} />
               <Route path="/fiche-patient" element={<FichePatient theme={theme} />} />
+              <Route path="/planning" element={<Planning theme={theme} />} />
             </Routes>
           </div>
         </div>
@@ -1553,19 +1855,24 @@ root.render(
 const style = document.createElement('style');
 style.textContent = `
 :root {
-  --primary: #3b82f6;
-  --primary-light: rgba(59, 130, 246, 0.1);
+  --primary:rgb(16, 13, 229);
+  --primary-light: rgba(139, 92, 246, 0.1);
+  --pink:rgb(28, 74, 238);
   --success: #10b981;
   --info: #06b6d4;
   --warning: #f59e0b;
   --danger: #ef4444;
-  --dark: #1e293b;
+  --dark: #1e1a2e;
+  --purple-500:rgb(28, 13, 234);
+  --purple-600:rgb(58, 73, 237);
+  --purple-700:rgb(81, 40, 217);
+  --pink-200: #fbcfe8;
+  --pink-500: #ec4899;
 }
 
 body {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
 }
-
 .sidebar {
   width: 250px;
   padding: 0 0 1rem;
@@ -1573,6 +1880,8 @@ body {
   transition: all 0.3s ease;
   position: fixed;
   z-index: 1000;
+  background: linear-gradient(180deg,rgb(11, 87, 211) 0%,rgb(10, 56, 239) 100%);
+  box-shadow: 0 0 30px rgba(59, 130, 246, 0.3);
 }
 
 .sidebar.collapsed {
@@ -1599,15 +1908,19 @@ body {
 
 .nav-link-custom:hover {
   color: white;
-  background-color: rgba(96, 165, 250, 0.2);
-  border-left: 3px solid #60a5fa;
+  background-color: rgba(99, 102, 241, 0.2);
+  border-left: 3px solidrgb(16, 20, 229);
 }
 
 .nav-link-custom.active {
   color: white;
   font-weight: 600;
-  background-color: rgba(96, 165, 250, 0.2);
-  border-left: 3px solid #60a5fa;
+  background-color: rgba(99, 102, 241, 0.2);
+  border-left: 3px solidrgb(22, 11, 228);
+}
+
+.sidebar h3 {
+  color: #e0e7ff !important;
 }
 
 .header {
@@ -1618,7 +1931,7 @@ body {
 }
 
 .search-bar input:focus {
-  box-shadow: 0 0 0 0.2rem rgba(59, 130, 246, 0.25);
+  box-shadow: 0 0 0 0.2rem rgba(139, 92, 246, 0.25);
   border-color: var(--primary);
 }
 
@@ -1636,7 +1949,7 @@ body {
 }
 
 .card-header {
-  border-bottom: 1px solid rgba(148, 163, 184, 0.1);
+  border-bottom: 1px solid rgba(167, 139, 250, 0.1);
   border-radius: 0;
 }
 
@@ -1659,8 +1972,8 @@ body {
 }
 
 .trend-info {
-  color: #3b82f6;
-  background-color: rgba(59, 130, 246, 0.1);
+  color:rgb(85, 18, 240);
+  background-color: rgba(139, 92, 246, 0.1);
   padding: 2px 8px;
   border-radius: 10px;
   display: inline-flex;
@@ -1694,9 +2007,9 @@ body {
 }
 
 .table.dark th {
-  color: #94a3b8;
-  background-color: rgba(30, 41, 59, 0.5);
-  border-bottom: 1px solid #334155;
+  color:rgb(81, 34, 221);
+  background-color: rgba(30, 26, 46, 0.5);
+  border-bottom: 1px solid #3a2d5a;
 }
 
 .table td {
@@ -1705,7 +2018,7 @@ body {
 }
 
 .table.dark td {
-  border-bottom: 1px solid #334155;
+  border-bottom: 1px solid #3a2d5a;
 }
 
 .table tr:last-child td {
@@ -1717,6 +2030,30 @@ body {
   padding: 0.35em 0.65em;
   font-size: 0.75em;
   letter-spacing: 0.05em;
+}
+
+.bg-purple-500 {
+  background-color:rgb(29, 18, 241);
+}
+
+.bg-purple-600 {
+  background-color:rgb(87, 6, 227);
+}
+
+.bg-purple-700 {
+  background-color:rgb(13, 57, 233);
+}
+
+.bg-pink-200 {
+  background-color: #fbcfe8;
+}
+
+.bg-pink-500 {
+  background-color: #ec4899;
+}
+
+.text-purple-800 {
+  color:rgb(33, 14, 236);
 }
 
 .modal-backdrop {
@@ -1765,7 +2102,7 @@ body {
 }
 
 .modal-header.dark {
-  border-bottom: 1px solid #334155;
+  border-bottom: 1px solid #3a2d5a;
 }
 
 .close-btn {
@@ -1808,7 +2145,7 @@ body {
 }
 
 .bar-label.dark {
-  color: #94a3b8;
+  color:rgb(59, 11, 203);
 }
 
 .bar-wrapper {
@@ -1846,7 +2183,7 @@ body {
 }
 
 .bar-change.negative {
-  color: #3b82f6;
+  color:rgb(94, 43, 211);
 }
 
 .stats-summary {
@@ -1874,7 +2211,7 @@ body {
 }
 
 .summary-card.dark h4 {
-  color: #94a3b8;
+  color:rgb(58, 6, 214);
 }
 
 .summary-card p {
@@ -1896,7 +2233,7 @@ body {
 }
 
 .modal-footer.dark {
-  border-top: 1px solid #334155;
+  border-top: 1px solid #3a2d5a;
 }
 
 .close-button {
@@ -1923,14 +2260,55 @@ body {
 .spinner {
   width: 40px;
   height: 40px;
-  border: 4px solid rgba(59, 130, 246, 0.2);
-  border-top-color: #3b82f6;
+  border: 4px solid rgba(139, 92, 246, 0.2);
+  border-top-color:rgb(80, 10, 243);
   border-radius: 50%;
   animation: spin 1s linear infinite;
 }
 
 @keyframes spin {
   to { transform: rotate(360deg); }
+}
+
+.react-calendar {
+  width: 100%;
+  max-width: 100%;
+  background: transparent;
+  border: none;
+  font-family: inherit;
+}
+
+.react-calendar__tile--active {
+  background:rgb(75, 12, 223);
+  color: white;
+}
+
+.react-calendar__tile--now {
+  background: #f3e8ff;
+  color:rgb(41, 10, 244);
+}
+
+.react-calendar__tile--hasActive {
+  background:rgb(86, 30, 252);
+}
+
+.react-calendar__tile--hasActive:enabled:hover,
+.react-calendar__tile--hasActive:enabled:focus {
+  background:rgb(81, 18, 227);
+}
+
+.react-calendar__navigation button:enabled:hover,
+.react-calendar__navigation button:enabled:focus {
+  background-color: #f3e8ff;
+}
+
+.react-calendar__navigation button[disabled] {
+  background-color: #f3e8ff;
+}
+
+.bg-purple-500 {
+  background-color:rgb(96, 36, 237) !important;
+  color: white !important;
 }
 
 @media (max-width: 768px) {

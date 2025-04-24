@@ -336,3 +336,12 @@ Route::get('/user', function () {
     return auth()->user();
 });
 Route::post('/rendez-vous/reserver', [RendezVousController::class, 'reserver'])->name('rendez_vous.reserver');
+
+use App\Http\Controllers\AProposNousController;
+Route::get('/a-propos-ns/create', [AProposNousController::class, 'create'])->name('aProposNous.create');
+Route::get('/a-propos-ns', [AProposNousController::class, 'index'])->name('aProposNous.index');
+Route::get('/a-propos-ns/{id}', [AProposNousController::class, 'show'])->name('aProposNous.show');
+Route::post('/a-propos-ns/store', [AProposNousController::class, 'store'])->name('aProposNous.store');
+Route::get('/a-propos-ns/{id}/edit', [AProposNousController::class, 'edit'])->name('aProposNous.edit');
+Route::put('/a-propos-ns/update/{id}', [AProposNousController::class, 'update'])->name('aProposNous.update');
+Route::delete('/a-propos-ns/{id}', [AProposNousController::class, 'destroy'])->name('aProposNous.destroy');

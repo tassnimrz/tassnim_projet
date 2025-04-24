@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import ReactDOM from 'react-dom/client';
 import { Link, BrowserRouter, useNavigate } from 'react-router-dom';
 import jsPDF from 'jspdf';
+
 import autoTable from 'jspdf-autotable';
 import {
   PlusCircle, DownloadCloud, Droplet, HeartPulse,
@@ -29,6 +30,7 @@ function App() {
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [patientToDelete, setPatientToDelete] = useState(null);
     const navigate = useNavigate();
+    
 
     const bloodTypeChartRef = useRef(null);
     const ageDistributionChartRef = useRef(null);
@@ -500,14 +502,15 @@ function App() {
                                 </div>
                                 
                                 <div className="mt-4 d-flex gap-2">
-                                    <Button 
-                                        variant="light"
-                                        className="w-100"
-                                        onClick={() => navigate(`/fiche-patient/${patient.id}/edit`)}
-                                    >
-                                        <Edit className="me-2" size={20} />
-                                        Modifier
-                                    </Button>
+                                <Button 
+    variant="light"
+    className="w-100"
+    onClick={() => window.location.href = `http://127.0.0.1:8000/fiche-patient/${patient.id}/edit`}
+>
+    <Edit className="me-2" size={20} />
+    Modifier
+</Button>
+
                                     
                                     <Button 
                                         variant="danger"
@@ -795,53 +798,25 @@ function App() {
                     <Container fluid>
                         <Navbar.Brand href="#">
                             <HeartPulse size={24} />
-                            <span>Cabinet Médical</span>
+                           
                         </Navbar.Brand>
                         
-                        <Navbar.Toggle aria-controls="basic-navbar-nav" />
+                      
                         
                         <Navbar.Collapse id="basic-navbar-nav">
                             <Nav className="ms-auto align-items-center">
                                 <div className="search-box me-3">
                                     <Search size={18} className="search-icon" />
-                                    <Form.Control 
-                                        type="search" 
-                                        placeholder="Rechercher un patient..." 
-                                        aria-label="Search"
-                                        value={searchTerm}
-                                        onChange={(e) => setSearchTerm(e.target.value)}
-                                    />
+                                    
                                 </div>
                                 
-                                <Dropdown align="end">
-                                    <Dropdown.Toggle variant="light" className="position-relative">
-                                        <Bell size={20} />
-                                        {showNotification && (
-                                            <Badge pill bg="danger" className="notification-badge">
-                                                {stats.recentPatients}
-                                            </Badge>
-                                        )}
-                                    </Dropdown.Toggle>
-                                    <Dropdown.Menu>
-                                        <Dropdown.Header>Notifications</Dropdown.Header>
-                                        <Dropdown.Item>
-                                            {stats.recentPatients} nouveau(x) patient(s) ce mois-ci
-                                        </Dropdown.Item>
-                                    </Dropdown.Menu>
-                                </Dropdown>
                                 
-                                <Dropdown align="end" className="ms-2">
-                                    <Dropdown.Toggle variant="light">
-                                        <User size={20} className="me-1" />
-                                        Mon compte
-                                    </Dropdown.Toggle>
-                                    <Dropdown.Menu>
-                                        <Dropdown.Item>Profil</Dropdown.Item>
-                                        <Dropdown.Item>Paramètres</Dropdown.Item>
-                                        <Dropdown.Divider />
-                                        <Dropdown.Item>Déconnexion</Dropdown.Item>
-                                    </Dropdown.Menu>
-                                </Dropdown>
+                               
+                                   
+                                        
+                                    
+                                   
+                               
                             </Nav>
                         </Navbar.Collapse>
                     </Container>
@@ -859,13 +834,13 @@ function App() {
                                     Accédez et gérez les dossiers médicaux de vos patients en toute sécurité
                                 </p>
                                 <Button 
-                                    variant="light" 
-                                    size="lg"
-                                    onClick={() => navigate('/fiche-patient/create')}
-                                >
-                                    <PlusCircle className="me-2" size={20} />
-                                    Nouveau Patient
-                                </Button>
+    variant="light" 
+    size="lg"
+    onClick={() => window.location.href = "http://127.0.0.1:8000/fiche-patient/create"}
+>
+    <PlusCircle className="me-2" size={20} />
+    Nouveau Patient
+</Button>
                             </Col>
                             <Col lg={6}>
                                 <Row className="g-3">
@@ -1015,6 +990,7 @@ function App() {
             </div>
         </>
     );
+    
 }
 
 const root = ReactDOM.createRoot(document.getElementById("app"));
