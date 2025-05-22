@@ -540,16 +540,8 @@ const PatientDetailsModal = React.memo(({ show, onHide, patient }) => {
                 title="Date de naissance" 
                 value={patient.date_naissance ? new Date(patient.date_naissance).toLocaleDateString() : 'N/A'} 
               />
-              <InfoCard 
-                icon="gender-ambiguous" 
-                title="Genre" 
-                value={formatGender(patient.genre)} 
-              />
-              <InfoCard 
-                icon="telephone" 
-                title="Téléphone" 
-                value={patient.telephone} 
-              />
+              
+              
               <InfoCard 
                 icon="envelope" 
                 title="Email" 

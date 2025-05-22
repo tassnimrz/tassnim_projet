@@ -50,7 +50,7 @@ function DameIAContextuelle({ visible, message, onClose, type = 'info' }) {
       >
         <div style={styles.container}>
           <motion.img 
-            src="https://cdn-icons-png.freepik.com/512/12506/12506135.png" 
+            src="https://i.pinimg.com/originals/9d/d5/4c/9dd54cab3b383726be62b529406f8328.gif" 
             alt="Dame IA" 
             style={styles.image}
             animate={{

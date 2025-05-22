@@ -27,20 +27,152 @@ const ThemeContext = createContext();
 function ConseilsIA({ theme, onClose }) {
   const [conseils, setConseils] = useState([]);
   const [statistiques, setStatistiques] = useState(null);
+  const [statsData, setStatsData] = useState({
+    rdv: { count: 0, confirmes: 0, annules: 0 },
+    patients: { total: 0, nouveaux: 0 },
+    planning: { jours: 0, capacite: 0 },
+    avis: { total: 0, satisfaction: 0 }
+  });
+  const [loading, setLoading] = useState(true);
+
+  const [animationValues, setAnimationValues] = useState({
+    rdv: 0,
+    patients: 0,
+    planning: 0,
+    satisfaction: 0
+  });
+  useEffect(() => {
+    const fetchAndSpeakRendezVous = async () => {
+      try {
+        const response = await axios.get('http://localhost:8000/api/rendezvous/aujourdhui');
+        console.log('Données RDV du jour:', response.data);
+  
+        const details = Array.isArray(response.data.details) ? response.data.details : [];
+  
+        const message = `Bonjour, vous avez ${response.data.count} rendez-vous aujourd'hui, dont ${response.data.confirmes} confirmés et ${response.data.annules} annulés.`;
+  
+        const utterance = new SpeechSynthesisUtterance(message);
+        utterance.lang = 'fr-FR';
+        utterance.rate = 0.95;
+  
+        speechSynthesis.speak(utterance);
+  
+      } catch (error) {
+        console.error('Erreur lors de la récupération des rendez-vous:', error);
+      }
+    };
+  
+    fetchAndSpeakRendezVous();
+  }, []);
+  
 
   useEffect(() => {
-    const fetchData = async () => {
+    const animateValues = (targetValues) => {
+      const duration = 2000;
+      const startTime = Date.now();
+      
+      const animate = () => {
+        const elapsed = Date.now() - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        
+        setAnimationValues({
+          rdv: Math.round(progress * targetValues.rdv),
+          patients: Math.round(progress * targetValues.patients),
+          planning: Math.round(progress * targetValues.planning),
+          satisfaction: Math.round(progress * targetValues.satisfaction)
+        });
+        
+        if (progress < 1) {
+          requestAnimationFrame(animate);
+        }
+      };
+      
+      animate();
+    };
+
+    if (statistiques) {
+      animateValues({
+        rdv: statistiques.rdvAujourdhui,
+        patients: statistiques.patientsIncomplets,
+        planning: statistiques.tauxRemplissage,
+        satisfaction: statistiques.tauxSatisfaction
+      });
+    }
+  }, [statistiques]);
+
+  useEffect(() => {
+    const fetchAllData = async () => {
       try {
-        const [rdvRes, patientsRes, avisRes] = await Promise.all([
-          axios.get('/api/rendezvous/stats-pour-chatbot'),
+        setLoading(true);
+        
+        const [rdvRes, patientsRes, planningRes, avisRes] = await Promise.all([
+          axios.get('/api/rendezvous/tous'),
           axios.get('/api/patients'),
-          axios.get('/api/avis/stats')
+          axios.get('/api/plannings'),
+          axios.get('/api/avis')
         ]);
 
+        const today = new Date().toISOString().split('T')[0];
+        console.log("Contenu de rdvRes.data :", rdvRes.data);
+
+        const rdvData = Array.isArray(rdvRes.data) ? rdvRes.data : 
+               Array.isArray(rdvRes.data?.details) ? rdvRes.data.details : [];
+const rdvsToday = rdvData.filter(rdv => {
+          if (!rdv.heure && !rdv.created_at) return false;
+        
+          // Si tu as un champ 'heure' (planningJour.heure_debut) ou sinon 'created_at'
+          const rdvDateStr = rdv.heure || rdv.created_at;
+          const rdvDate = new Date(rdvDateStr).toDateString();
+          const todayStr = new Date().toDateString();
+        
+          return rdvDate === todayStr;
+        });
+        
+        
+        
+        const patientsData = Array.isArray(patientsRes.data) ? patientsRes.data : [];
+        const patientsIncomplets = patientsData.filter(p => !p.informations_completes).length;
+        
+        const planningData = Array.isArray(planningRes.data) ? planningRes.data : [];
+const planningsToday = planningData.filter(p => 
+          p.date && p.date.startsWith(today)
+        );
+        const tauxRemplissage = planningsToday.length > 0 
+          ? Math.round((rdvsToday.length / planningsToday[0].capacite_max) * 100)
+          : 0;
+        
+        const avisPositifs = avisRes.data.filter(a => a.note >= 4).length;
+        const tauxSatisfaction = avisRes.data.length > 0
+          ? Math.round((avisPositifs / avisRes.data.length) * 100)
+          : 0;
+
+        setStatsData({
+          rdv: {
+            count: rdvsToday.length,
+            confirmes: rdvsToday.filter(r => r.statut === 'confirmé').length,
+            annules: rdvsToday.filter(r => r.statut === 'annulé').length
+          },
+          patients: {
+            total: patientsRes.data.length,
+            nouveaux: patientsRes.data.filter(p => 
+              new Date(p.date_inscription) > new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
+            ).length
+          },
+          planning: {
+            jours: planningRes.data.length,
+            capacite: planningsToday[0]?.capacite_max || 0
+          },
+          avis: {
+            total: avisRes.data.length,
+            satisfaction: tauxSatisfaction
+          }
+        });
+
         const stats = {
-          rdvAujourdhui: rdvRes.data.rdv_aujourdhui.count,
-          patientsIncomplets: patientsRes.data.filter(p => !p.informations_completes).length,
-          tauxSatisfaction: avisRes.data.tauxSatisfaction
+          rdvAujourdhui: rdvsToday.length,
+          patientsIncomplets,
+          tauxRemplissage,
+          tauxSatisfaction
         };
 
         const nouveauxConseils = [];
@@ -53,14 +185,6 @@ function ConseilsIA({ theme, onClose }) {
           });
         }
 
-        if (stats.patientsIncomplets > 0) {
-          nouveauxConseils.push({
-            type: 'patient',
-            message: `📋 ${stats.patientsIncomplets} dossiers patients incomplets à compléter`,
-            pourcentage: Math.min(100, (stats.patientsIncomplets / 50) * 100)
-          });
-        }
-
         if (stats.tauxSatisfaction < 70) {
           nouveauxConseils.push({
             type: 'satisfaction',
@@ -69,16 +193,46 @@ function ConseilsIA({ theme, onClose }) {
           });
         }
 
+        if (stats.patientsIncomplets > 0) {
+          nouveauxConseils.push({
+            type: 'patients',
+            message: `📝 ${stats.patientsIncomplets} patients avec des informations incomplètes.`,
+            pourcentage: Math.min(100, (stats.patientsIncomplets / statsData.patients.total) * 100)
+          });
+        }
+
         setStatistiques(stats);
         setConseils(nouveauxConseils);
+        setLoading(false);
 
       } catch (error) {
         console.error("Erreur récupération données conseils:", error);
+        setLoading(false);
       }
     };
 
-    fetchData();
+    fetchAllData();
+    
+    const interval = setInterval(fetchAllData, 300000);
+    return () => clearInterval(interval);
   }, []);
+
+  const speakAdvice = () => {
+    if (conseils.length > 0 && 'speechSynthesis' in window) {
+      const synth = window.speechSynthesis;
+      const utterance = new SpeechSynthesisUtterance();
+      
+      let message = "Voici vos conseils du jour : ";
+      conseils.forEach(conseil => {
+        message += conseil.message + ". ";
+      });
+      
+      utterance.text = message;
+      utterance.lang = "fr-FR";
+      utterance.rate = 0.9;
+      synth.speak(utterance);
+    }
+  };
 
   return (
     <div className="modal-backdrop show">
@@ -94,123 +248,217 @@ function ConseilsIA({ theme, onClose }) {
           borderTopLeftRadius: '20px',
           borderTopRightRadius: '20px'
         }}>
-          <h3 className="text-white mb-0">🤖 Assistant IA Médical</h3>
-          <button onClick={onClose} className="btn btn-link text-white">&times;</button>
+          <h3 className="text-white mb-0">🤖 Assistant Médical - Lucie</h3>
+          <div>
+            <button 
+              onClick={speakAdvice} 
+              className="btn btn-sm btn-outline-light me-2"
+              title="Lire les conseils"
+            >
+              🔊
+            </button>
+            <button onClick={onClose} className="btn btn-link text-white">&times;</button>
+          </div>
         </div>
         
         <div className="modal-body p-4">
-          <div className="row">
-            <div className="col-md-4 mb-4">
-              <div className="card h-100" style={{ 
-                background: theme === 'dark' ? '#2d2a42' : '#f5f3ff',
-                border: 'none'
-              }}>
-                <div className="card-body text-center">
-                  <div className="avatar-anime mb-3">
-                    <img 
-                      src="https://i.gifer.com/7Ql8.gif" 
-                      alt="IA Avatar"
-                      style={{
-                        width: '100px',
-                        height: '100px',
-                        borderRadius: '50%',
-                        objectFit: 'cover',
-                        border: '3px solid #8b5cf6'
-                      }}
-                    />
-                  </div>
-                  <h5 className="mb-1">Dr. Intelligence</h5>
-                  <p className="text-muted small">Assistant Médical IA</p>
-                  <div className="badge bg-purple-100 text-purple-800">
-                    Version 2.1.5
+          {loading ? (
+            <div className="text-center py-4">
+              <div className="spinner-border text-primary" role="status">
+                <span className="visually-hidden">Chargement...</span>
+              </div>
+              <p>Analyse des données en cours...</p>
+            </div>
+          ) : (
+            <div className="row">
+              <div className="col-md-4 mb-4">
+                <div className="card h-100" style={{ 
+                  background: theme === 'dark' ? '#2d2a42' : '#f5f3ff',
+                  border: 'none'
+                }}>
+                  <div className="card-body text-center">
+                    <div className="avatar-anime mb-3">
+                      <img 
+                        src="https://cdn.pixabay.com/animation/2022/08/06/11/57/11-57-43-584_512.gif" 
+                        alt="IA Avatar"
+                        style={{
+                          width: '100px',
+                          height: '100px',
+                          borderRadius: '50%',
+                          objectFit: 'cover',
+                          border: '3px solid #8b5cf6'
+                        }}
+                      />
+                    </div>
+                    <h5 className="mb-1">Lucie IA</h5>
+                    <p className="text-muted small">Assistant Médical IA</p>
+                    
+                    <div className="mt-4">
+                      <div className="mb-3">
+                        <h6 style={{ color: theme === 'dark' ? '#a78bfa' : '#7e22ce' }}>
+                          RDV aujourd'hui
+                        </h6>
+                        <div className="progress" style={{ height: '10px' }}>
+                          <div 
+                            className="progress-bar bg-primary" 
+                            role="progressbar" 
+                            style={{ 
+                              width: `${Math.min(100, (animationValues.rdv / 20) * 100)}%`,
+                              transition: 'width 0.5s ease'
+                            }}
+                          ></div>
+                        </div>
+                        <div className="d-flex justify-content-between mt-1">
+                          <small>{animationValues.rdv} / {statsData.planning.capacite}</small>
+                          <small>
+                            {statsData.planning.capacite > 0 
+                              ? `${Math.round((animationValues.rdv / statsData.planning.capacite) * 100)}%` 
+                              : '0%'}
+                          </small>
+                        </div>
+                      </div>
+                      
+                      <div className="mb-3">
+                        <h6 style={{ color: theme === 'dark' ? '#a78bfa' : '#7e22ce' }}>
+                          Satisfaction patients
+                        </h6>
+                        <div className="progress" style={{ height: '10px' }}>
+                          <div 
+                            className="progress-bar bg-success" 
+                            role="progressbar" 
+                            style={{ 
+                              width: `${animationValues.satisfaction}%`,
+                              transition: 'width 0.5s ease'
+                            }}
+                          ></div>
+                        </div>
+                        <small className="d-block text-center mt-1">
+                          {animationValues.satisfaction}%
+                        </small>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
 
-            <div className="col-md-8">
-              <h4 className="mb-4" style={{ color: theme === 'dark' ? 'white' : '#4c1d95' }}>
-                Conseils Opérationnels
-              </h4>
-              
-              {conseils.length > 0 ? (
-                conseils.map((conseil, index) => (
-                  <div key={index} className="alert mb-3" style={{
-                    background: theme === 'dark' ? '#3a2d5a' : '#f3e8ff',
-                    borderLeft: `4px solid ${conseil.type === 'urgence' ? '#ef4444' : '#8b5cf6'}`,
-                    borderRadius: '8px'
-                  }}>
-                    <div className="d-flex justify-content-between align-items-center">
-                      <div>
-                        {conseil.message}
-                        <div className="progress mt-2" style={{ height: '6px', width: '200px' }}>
-                          <div className="progress-bar" 
-                               role="progressbar" 
-                               style={{ width: `${conseil.pourcentage}%`, 
-                                       background: `linear-gradient(90deg, ${conseil.type === 'urgence' ? '#ef4444' : '#8b5cf6'}, #ec4899)` }}>
+              <div className="col-md-8">
+                <h4 className="mb-4" style={{ color: theme === 'dark' ? 'white' : '#4c1d95' }}>
+                  Tableau de bord en temps réel
+                </h4>
+                
+                <div className="row mb-4">
+                  <div className="col-md-6 mb-3">
+                    <div className="card" style={{ 
+                      background: theme === 'dark' ? '#2d2a42' : 'white',
+                      border: 'none',
+                      height: '100%'
+                    }}>
+                      <div className="card-body">
+                        <h5 style={{ color: theme === 'dark' ? '#a78bfa' : '#7e22ce' }}>
+                          <People className="me-2" /> Patients
+                        </h5>
+                        <div className="d-flex align-items-center justify-content-around">
+                          <div className="text-center">
+                            <div className="display-4" style={{ color: theme === 'dark' ? 'white' : '#4c1d95' }}>
+                              {statsData.patients.total}
+                            </div>
+                            <small>Total</small>
+                          </div>
+                          <div className="text-center">
+                            <div className="display-4" style={{ color: theme === 'dark' ? 'white' : '#4c1d95' }}>
+                              {statsData.patients.nouveaux}
+                            </div>
+                            <small>Nouveaux (30j)</small>
+                          </div>
+                        </div>
+                        <div className="mt-3">
+                          <div className="progress" style={{ height: '6px' }}>
+                            <div 
+                              className="progress-bar bg-info" 
+                              style={{ 
+                                width: `${Math.min(100, (statsData.patients.nouveaux / statsData.patients.total) * 100)}%`
+                              }}
+                            ></div>
                           </div>
                         </div>
                       </div>
-                    
                     </div>
                   </div>
-                ))
-              ) : (
-                <div className="text-center py-4">
-                  <p className="text-muted">Aucun problème détecté. Tout semble en ordre ! 🎉</p>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {statistiques && (
-            <div className="row mt-4">
-              <div className="col-md-6">
-                <div className="card" style={{ 
-                  background: theme === 'dark' ? '#2d2a42' : '#fff',
-                  border: 'none'
-                }}>
-                  <div className="card-body">
-                    <h6 className="text-uppercase small">Statistiques Clés</h6>
-                    <div className="d-flex justify-content-between align-items-center mb-3">
-                      <span>RDV Aujourd'hui</span>
-                      <span className="badge bg-purple-500">{statistiques.rdvAujourdhui}</span>
-                    </div>
-                    <div className="d-flex justify-content-between align-items-center mb-3">
-                      <span>Dossiers Incomplets</span>
-                      <span className="badge bg-pink-500">{statistiques.patientsIncomplets}</span>
-                    </div>
-                    <div className="d-flex justify-content-between align-items-center">
-                      <span>Satisfaction Patients</span>
-                      <span className="badge bg-green-500">{Math.round(statistiques.tauxSatisfaction)}%</span>
+                  
+                  <div className="col-md-6 mb-3">
+                    <div className="card" style={{ 
+                      background: theme === 'dark' ? '#2d2a42' : 'white',
+                      border: 'none',
+                      height: '100%'
+                    }}>
+                      <div className="card-body">
+                        <h5 style={{ color: theme === 'dark' ? '#a78bfa' : '#7e22ce' }}>
+                          <CalendarCheck className="me-2" /> Rendez-vous
+                        </h5>
+                        <div className="d-flex align-items-center justify-content-around">
+                          <div className="text-center">
+                            <div className="display-4" style={{ color: theme === 'dark' ? 'white' : '#4c1d95' }}>
+                              {statsData.rdv.count}
+                            </div>
+                            <small>Aujourd'hui</small>
+                          </div>
+                          <div className="text-center">
+                            <div className="display-4" style={{ color: theme === 'dark' ? 'white' : '#4c1d95' }}>
+                              {statsData.rdv.confirmes}
+                            </div>
+                            <small>Confirmés</small>
+                          </div>
+                        </div>
+                        <div className="mt-3">
+                          <div className="progress" style={{ height: '6px' }}>
+                            <div 
+                              className="progress-bar bg-success" 
+                              style={{ width: `${(statsData.rdv.confirmes / statsData.rdv.count) * 100}%` }}
+                            ></div>
+                            <div 
+                              className="progress-bar bg-danger" 
+                              style={{ width: `${(statsData.rdv.annules / statsData.rdv.count) * 100}%` }}
+                            ></div>
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
-              
-              <div className="col-md-6">
-                <div className="card" style={{ 
-                  background: theme === 'dark' ? '#2d2a42' : '#fff',
-                  border: 'none'
-                }}>
-                  <div className="card-body">
-                    <h6 className="text-uppercase small">Actions Recommandées</h6>
-                    <ul className="list-unstyled">
-                      <li className="mb-2">
-                        <input type="checkbox" className="form-check-input me-2" />
-                        Vérifier les disponibilités
-                      </li>
-                      <li className="mb-2">
-                        <input type="checkbox" className="form-check-input me-2" />
-                        Relancer les patients
-                      </li>
-                      <li>
-                        <input type="checkbox" className="form-check-input me-2" />
-                        Mettre à jour les plannings
-                      </li>
-                    </ul>
+                
+                <h5 className="mb-3" style={{ color: theme === 'dark' ? 'white' : '#4c1d95' }}>
+                  Conseils Opérationnels
+                </h5>
+                
+                {conseils.length > 0 ? (
+                  conseils.map((conseil, index) => (
+                    <div key={index} className="alert mb-3" style={{
+                      background: theme === 'dark' ? '#3a2d5a' : '#f3e8ff',
+                      borderLeft: `4px solid ${conseil.type === 'urgence' ? '#ef4444' : '#8b5cf6'}`,
+                      borderRadius: '8px'
+                    }}>
+                      <div className="d-flex justify-content-between align-items-center">
+                        <div>
+                          {conseil.message}
+                          <div className="progress mt-2" style={{ height: '6px', width: '200px' }}>
+                            <div className="progress-bar" 
+                                 role="progressbar" 
+                                 style={{ 
+                                   width: `${conseil.pourcentage}%`, 
+                                   background: `linear-gradient(90deg, ${conseil.type === 'urgence' ? '#ef4444' : '#8b5cf6'}, #ec4899)`,
+                                   transition: 'width 1s ease'
+                                 }}>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="text-center py-4">
+                    <p className="text-muted">Aucun problème détecté. Tout semble en ordre ! 🎉</p>
                   </div>
-                </div>
+                )}
               </div>
             </div>
           )}
@@ -517,10 +765,28 @@ function Sidebar({ isCollapsed, theme }) {
             {!isCollapsed && 'plan des rendez vous'}
           </NavLink>
         </li>
+        <li className="nav-item mb-2">
+          <a 
+            href="/urgences" 
+            className="nav-link-custom"
+            style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', color: '#e9d5ff' }}
+            onClick={(e) => {
+              e.preventDefault();
+              document.body.classList.add('fade-out');
+              setTimeout(() => {
+                window.location.href = "/urgences";
+              }, 500);
+            }}
+          >
+            <Bell className="me-2" style={{ color: '#e9d5ff' }} />
+            {!isCollapsed && 'Urgences'}
+          </a>
+        </li>
       </ul>
     </div>
   );
 }
+
 
 function Header({ onToggleSidebar, toggleTheme, theme }) {
   const [langue, setLangue] = useState('fr');
@@ -928,20 +1194,17 @@ function DashboardSecretary({ theme }) {
               id: planning.medecin.id,
               name: planning.medecin.name,
               specialty: "Médecin généraliste",
-              rating: (4.5 + Math.random() * 0.5).toFixed(1),
-              description: `Médecin avec ${Math.floor(5 + Math.random() * 15)} ans d'expérience`,
-              image: `https://randomuser.me/api/portraits/${Math.random() > 0.5 ? 'men' : 'women'}/${Math.floor(Math.random() * 100)}.jpg`
+             
+              image: `https://cdn.pixabay.com/animation/2022/07/29/14/46/14-46-18-128_512.gif`
             });
           }
         });
 
         uniqueDoctors.push({
-          id: 'ai-doctor',
-          name: "Dr. Intelligence IA",
-          specialty: "Assistant Médical IA",
-          rating: "5.0 ★",
-          description: "Assistant virtuel pour l'optimisation des opérations médicales",
-          image: "https://i.pinimg.com/originals/89/30/3d/89303d23215e753c2b618d1aac0a93a3.gif",
+          
+          
+          
+          image: "https://cdn.pixabay.com/animation/2022/08/06/11/57/11-57-43-584_512.gif",
           isAI: true
         });
         
@@ -1072,10 +1335,7 @@ function DashboardSecretary({ theme }) {
     <div className="container-fluid">
       <div className="d-sm-flex align-items-center justify-content-between mb-4">
         <h1 className="h3 mb-0" style={{ color: theme === 'dark' ? 'white' : '#4c1d95' }}>Tableau de bord</h1>
-        <button className={`d-none d-sm-inline-block btn btn-sm shadow-sm ${theme === 'dark' ? 'bg-purple-600 hover:bg-purple-700' : 'bg-purple-500 hover:bg-purple-600'} text-white`}>
-          <Plus size={16} className="me-1" />
-          Générer un rapport
-        </button>
+        
       </div>
 
       <div className="row">
@@ -1218,20 +1478,21 @@ function DashboardSecretary({ theme }) {
                          style={doctor.isAI ? { 
                            cursor: 'pointer',
                            background: theme === 'dark' ? 'linear-gradient(45deg, #1a1a2e, #16213e)' : 'linear-gradient(45deg, #f8f5ff, #f3e8ff)',
-                           borderRadius: '12px',
-                           padding: '15px',
+                           borderRadius: '1px',
+                           padding: '1px',
+                           
                            transition: 'transform 0.3s ease',
                            border: theme === 'dark' ? '1px solid #3a2d5a' : '1px solid #e9d8ff'
                          } : {}}
                          onClick={doctor.isAI ? () => setShowAIModal(true) : undefined}>
-                      <div className="me-3">
+                     <div style={{ marginRight: '8px' }}>
                         <img 
                           src={doctor.image} 
                           alt={doctor.name} 
                           className={doctor.isAI ? "rounded-circle border-purple" : "rounded-circle"} 
                           style={{ 
-                            width: '50px', 
-                            height: '50px', 
+                            width: '100px', 
+                            height: '160px', 
                             objectFit: 'cover',
                             border: doctor.isAI ? '2px solid #8b5cf6' : 'none'
                           }}
@@ -1542,32 +1803,7 @@ function DashboardSecretary({ theme }) {
         </div>
       )}
 
-      <DameIAContextuelle 
-        visible={showDameIA}
-        message={messageDame}
-        onClose={() => setShowDameIA(false)}
-      />
-      <button
-        onClick={() => activerDameIA("Bonjour, je suis votre assistante IA. Besoin d'aide ?")}
-        style={{ 
-          position: 'fixed', 
-          bottom: 100, 
-          right: 20, 
-          zIndex: 10001,
-          background: 'linear-gradient(135deg,rgb(16, 20, 240) 0%, #ec4899 100%)',
-          color: 'white',
-          border: 'none',
-          borderRadius: '50%',
-          width: '60px',
-          height: '60px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          boxShadow: '0 4px 12px rgba(139, 92, 246, 0.3)'
-        }}
-      >
-        IA
-      </button>
+      
     </div>
   );
 }
@@ -1686,10 +1922,7 @@ function PatientsList({ theme }) {
         borderTopRightRadius: '16px'
       }}>
         <h5 className="m-0 font-weight-bold text-white">Liste des Patients</h5>
-        <button className={`btn btn-sm ${theme === 'dark' ? 'bg-purple-600 hover:bg-purple-700' : 'bg-purple-500 hover:bg-purple-600'} text-white`}>
-          <Plus size={16} className="me-1" />
-          Ajouter un patient
-        </button>
+        
       </div>
       <div className="card-body">
         {loading ? (
@@ -1703,16 +1936,82 @@ function PatientsList({ theme }) {
         ) : (
           <div className="table-responsive">
             <table className={`table ${theme === 'dark' ? 'table-dark' : ''}`}>
-              <thead>
-                <tr>
-                  <th>Patient</th>
-                  <th>Contact</th>
-                  <th>Adresse</th>
-                  <th>Date de naissance</th>
-                  <th>Inscrit le</th>
-                 
-                </tr>
-              </thead>
+            <thead>
+  <tr>
+    <th colSpan="6" style={{ 
+      padding: 0,
+      height: '75px', // Changé de 50px à 75px pour 2cm
+      position: 'relative',
+      width: '100%'
+    }}>
+      <div style={{
+        display: 'flex',
+        width: '100%',
+        height: '100%'
+      }}>
+        {/* GIF 1 */}
+        <div style={{ flex: 1, overflow: 'hidden' }}>
+          <img 
+            src="https://cdn.dribbble.com/userupload/23002793/file/original-3f028f30f7f023f692a0d341f2ca3741.gif" 
+            alt="GIF 1"
+            style={{
+              width: '100%',
+              height: '100%',
+              objectFit: 'cover'
+            }}
+          />
+        </div>
+        
+        {/* GIF 2 */}
+        <div style={{ flex: 1, overflow: 'hidden' }}>
+          <img 
+            src="https://cdn.pixabay.com/animation/2022/08/06/11/56/11-56-57-681_512.gif" 
+            alt="GIF 2"
+            style={{
+              width: '100%',
+              height: '100%',
+              objectFit: 'cover'
+            }}
+          />
+        </div>
+        
+        {/* GIF 3 */}
+        <div style={{ flex: 1, overflow: 'hidden' }}>
+          <img 
+            src="https://i.pinimg.com/originals/4b/22/93/4b229396885b90ea126258e5d19370ec.gif" 
+            alt="GIF 3"
+            style={{
+              width: '100%',
+              height: '100%',
+              objectFit: 'cover'
+            }}
+          />
+        </div>
+        
+        {/* GIF 4 */}
+        <div style={{ flex: 1, overflow: 'hidden' }}>
+          <img 
+            src="https://imgvisuals.com/cdn/shop/products/animated-patient-flow-illustration-943688.gif?v=1697071141" 
+            alt="GIF 4"
+            style={{
+              width: '100%',
+              height: '100%',
+              objectFit: 'cover'
+            }}
+          />
+        </div>
+      </div>
+    </th>
+  </tr>
+  <tr>
+    <th>Patient</th>
+    <th>Contact</th>
+    <th>Adresse</th>
+    <th>Date de naissance</th>
+    <th>Inscrit le</th>
+    <th>Actions</th>
+  </tr>
+</thead>
               <tbody>
                 {patients.map((patient) => (
                   <tr key={patient.id}>
@@ -1726,6 +2025,17 @@ function PatientsList({ theme }) {
                           alignItems: 'center',
                           justifyContent: 'center'
                         }}>
+                          <img 
+              src="https://cdn.pixabay.com/animation/2022/07/29/14/46/14-46-18-128_512.gif" 
+              alt="Patient" 
+              style={{
+                width: '100%',
+                height: '100%',
+                objectFit: 'cover',
+                borderRadius: '50%'
+              }}
+            />
+                          
                           <PersonCircle size={20} style={{ color: '#8b5cf6' }} />
                         </div>
                         <div>
@@ -1828,13 +2138,17 @@ function Layout() {
         <Sidebar isCollapsed={isCollapsed} theme={theme} />
         <div className="flex-grow-1">
           <Header onToggleSidebar={toggleSidebar} toggleTheme={toggleTheme} theme={theme} />
+          
           <div className="p-4" style={mainStyle}>
             <Routes>
+              <Route path="/dashboard/secretaire" element={<DashboardSecretary theme={theme} />} />
               <Route path="/" element={<DashboardSecretary theme={theme} />} />
               <Route path="/rdvs" element={<Rdvs theme={theme} />} />
               <Route path="/patients" element={<PatientsList theme={theme} />} />
               <Route path="/fiche-patient" element={<FichePatient theme={theme} />} />
               <Route path="/planning" element={<Planning theme={theme} />} />
+              <Route path="/urgences" element={<Planning theme={theme} />} />
+              
             </Routes>
           </div>
         </div>

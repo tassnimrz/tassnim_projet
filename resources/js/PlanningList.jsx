@@ -551,18 +551,7 @@ const PlanningList = () => {
             </div>
           </motion.div>
           
-          <motion.div 
-            className="stat-card"
-            whileHover={{ y: -5 }}
-          >
-            <div className="stat-icon purple">
-              <i className="fas fa-users"></i>
-            </div>
-            <div className="stat-info">
-              <h3>{plannings.reduce((sum, p) => sum + parseInt(p.nombre_max_patients), 0)}</h3>
-              <p>Capacité totale</p>
-            </div>
-          </motion.div>
+          
         </motion.div>
 
         {/* Pied de page moderne */}

@@ -127,6 +127,8 @@ Route::get('/tous-rendezvous', function () {
 
     return response()->json($rendezvous);
 });
+Route::get('/rendezvous/tous', [RendezVousController::class, 'tousRendezVous']);
+Route::get('/rendezvous/aujourdhui', [RendezVousController::class, 'rendezVousAujourdhui']);
 
 
 Route::get('/prochain-rdv', [RendezVousController::class, 'prochainRdv']);
@@ -138,3 +140,81 @@ Route::middleware('auth')->get('/api/capsule-sante', [RendezVousController::clas
 Route::get('/rendezvous/stats-pour-chatbot', [RendezVousController::class, 'statsPourChatbot']);
 Route::get('/stats/remplissage', [RendezVousController::class, 'getRemplissageAujourdhui']);
 Route::get('/rendezvous/tous', [RendezVousController::class, 'index']);
+Route::post('/urgences/initier-appel/{id}', [UrgencyController::class, 'initierAppel'])
+    ->middleware('auth:api');  // Protection si nécessaire
+    Route::get('/urgences/stats', function() {
+        return response()->json([
+            'total' => \App\Models\Urgency::count(),
+            'enAttente' => \App\Models\Urgency::where('etat', 'en_attente')->count(),
+            'terminees' => \App\Models\Urgency::where('etat', 'termine')->count(), // ou 'terminee'
+            'echecs' => \App\Models\Urgency::where('etat', 'echec')->count()
+        ]);
+    });
+    // Dans routes/api.php
+Route::get('/urgency-stats', [UrgencyController::class, 'getUrgencyStats']);
+Route::get('/ai-predictions', [UrgencyController::class, 'getAIPredictions']);
+Route::get('/urgences/stats', [UrgencyController::class, 'getUrgencyStats']);
+
+
+
+
+
+
+use Illuminate\Support\Facades\DB;
+
+Route::post('/position', function (Request $request) {
+    // Valider les champs
+    $request->validate([
+        'phone' => 'required|string',
+        'lat'   => 'required|numeric',
+        'lng'   => 'required|numeric',
+    ]);
+
+    DB::table('positions')->updateOrInsert(
+        ['phone' => $request->input('phone')],
+        [
+            'lat'        => $request->input('lat'),
+            'lng'        => $request->input('lng'),
+            'updated_at' => now()
+        ]
+    );
+
+    return response()->json(['status' => 'ok']);
+});
+
+Route::get('/position', function (Request $request) {
+    $request->validate([
+        'phone' => 'required|string',
+    ]);
+
+    $position = DB::table('positions')
+        ->where('phone', $request->query('phone'))
+        ->first(['lat', 'lng']);
+
+    if (! $position) {
+        return response()->json(['error' => 'Pas de position trouvée'], 404);
+    }
+
+    return response()->json($position);
+});
+
+
+
+// routes/api.php
+Route::post('/position', function (Request $request) {
+    DB::table('positions')->updateOrInsert(
+        ['phone' => $request->input('phone')],
+        ['lat' => $request->input('lat'), 'lng' => $request->input('lng')]
+    );
+    return response()->json(['status' => 'ok']);
+})->withoutMiddleware('throttle:100,1'); 
+
+
+
+
+
+
+
+
+
+

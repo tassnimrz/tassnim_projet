@@ -506,6 +506,32 @@ public function getRemplissageAujourdhui()
         'total' => $total
     ]);
 }
+public function rendezVousAujourdhui()
+{
+    $aujourdhui = date('Y-m-d');
+
+    $rdvs = RendezVous::with(['patient', 'medecin', 'planningJour'])
+        ->whereDate('created_at', $aujourdhui)  // Filtrer par date sur created_at
+        ->get();
+
+    return response()->json([
+        'count' => $rdvs->count(),
+        'confirmes' => $rdvs->where('statut', 'confirmé')->count(),
+        'annules' => $rdvs->where('statut', 'annulé')->count(),
+        'details' => $rdvs->map(function ($r) {
+            return [
+                'patient' => $r->patient->name ?? 'Inconnu',
+                'medecin' => $r->medecin->name ?? 'Inconnu',
+                'heure' => $r->created_at->format('H:i'), // heure du created_at
+                'statut' => $r->statut,
+            ];
+        }),
+    ]);
+}
+
+
+
+
 
 
 

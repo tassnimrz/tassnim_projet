@@ -9,6 +9,10 @@ use Inertia\Inertia;
 
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\SmsController;
+Route::get('/dashboard', function () {
+    return view('dashboard');
+})->middleware(['auth'])->name('dashboard');
+
 
 Route::get('/send-test-sms', [SmsController::class, 'sendTestSms']);
 use App\Http\Controllers\RendezVousController;
@@ -144,7 +148,6 @@ Route::get('/fiche-patients', [FichePatientController::class, 'index'])->name('f
 Route::get('/fiche-patients/{id}', [FichePatientController::class, 'show'])->name('fiche-patients.show'); // Route show avec paramètre
 Route::get('/fiche-patient/{id}/pdf', [FichePatientController::class, 'generatePDF']);
 });
-
 
 // Route pour la création
 Route::get('/fiche-patient/create', [FichePatientController::class, 'create']);
@@ -315,8 +318,17 @@ Route::get('/admin/dashboard', [AvisController::class, 'index'])->name('admin.da
 Route::get('/profil', function(){
     return view('profil');
 
+
     
 });
+
+
+Route::middleware('auth')->group(function () {
+    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
+    Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
+    Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+});
+
 
 use App\Http\Controllers\Auth\ForgotPasswordController;
 Route::get('/mot-de-passe-oublie', [ForgotPasswordController::class, 'showLinkRequestForm'])->name('password.request');
@@ -345,3 +357,77 @@ Route::post('/a-propos-ns/store', [AProposNousController::class, 'store'])->name
 Route::get('/a-propos-ns/{id}/edit', [AProposNousController::class, 'edit'])->name('aProposNous.edit');
 Route::put('/a-propos-ns/update/{id}', [AProposNousController::class, 'update'])->name('aProposNous.update');
 Route::delete('/a-propos-ns/{id}', [AProposNousController::class, 'destroy'])->name('aProposNous.destroy');
+
+
+// routes/web.php
+use App\Http\Controllers\UrgencyController;
+Route::get('/urgencies', [UrgencyController::class, 'bladePage']);
+Route::get('/urgency-stats', [UrgencyController::class, 'statsPage']);
+
+Route::get('/urgences', [UrgencyController::class, 'bladePage'])->name('urgencies.blade');
+Route::post('/urgences/store', [UrgencyController::class, 'store'])->name('urgencies.store');
+Route::get('/urgences/edit/{id}', [UrgencyController::class, 'edit'])->name('urgencies.edit');
+Route::post('/urgences/update/{id}', [UrgencyController::class, 'update'])->name('urgencies.update');
+Route::delete('/urgences/delete/{id}', [UrgencyController::class, 'destroy'])->name('urgencies.delete');
+Route::post('/urgences/initier-appel/{id}', [UrgencyController::class, 'initierAppel'])->name('urgencies.initier-appel');
+
+// Routes pour Twilio
+Route::post('/urgence/call/status/{urgency}', [UrgencyController::class, 'handleCallStatus'])
+    ->name('urgency.call.status');
+Route::get('/urgence/call/message', function(Request $request) {
+    $message = urldecode($request->input('message'));
+    $response = new \Twilio\TwiML\VoiceResponse();
+    $response->say($message, ['voice' => 'woman', 'language' => 'fr-FR']);
+    return response($response)->header('Content-Type', 'text/xml');
+})->name('urgency.call.message');
+use App\Models\Urgency; // ou ton modèle correspondant
+use App\Models\User;    // exemple pour les médecins
+use App\Models\RendezVous; // exemple pour les rendez-vous
+use Illuminate\Support\Facades\DB;
+
+Route::get('/statistiques', function () {
+    // Exemples de données statistiques depuis la base
+    $nombreUrgences = \App\Models\Urgency::count();
+    $nombrePatients = \App\Models\Patient::count();
+    $nombreMedecins = \App\Models\User::where('role', 'medecin')->count();
+    $rdvAujourdHui = \App\Models\RendezVous::whereDate('date', today())->count();
+
+    return view('single_page', [
+        'nombreUrgences' => $nombreUrgences,
+        'nombrePatients' => $nombrePatients,
+        'nombreMedecins' => $nombreMedecins,
+        'rdvAujourdHui' => $rdvAujourdHui,
+    ]);
+});
+Route::get('/statistiques', [UrgencyController::class, 'statistics'])->name('statistics');
+
+
+Route::get('/statistiques', [UrgencyController::class, 'statistiques']);
+
+
+
+// routes/web.php
+Route::get('/partage-position', function () {
+    return view('partage-position');
+});
+
+
+
+
+
+
+
+
+
+
+
+Route::get('language/{locale}', function ($locale) {
+    if (! in_array($locale, ['en', 'fr', 'ar'])) {
+        abort(400);
+    }
+
+    session(['locale' => $locale]);
+    app()->setLocale($locale);
+    
+    return redirect()->back();
+})->name('language.switch');
