@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, createContext } from 'react';
 import { createRoot } from 'react-dom/client';
 import PatientChart from './PatientChart';
@@ -2101,6 +2102,7 @@ function Planning({ theme }) {
     </div>
   );
 }
+
 
 function Layout() {
   const location = useLocation();

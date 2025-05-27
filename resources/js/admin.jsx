@@ -1244,7 +1244,54 @@ const Profil = ({ currentTheme, language }) => {
     </Container>
   );
 };
+const SettingsPage = ({ currentTheme, language }) => {
+  return (
+    <Card className="border-0 shadow-lg glass-card" style={{ borderRadius: "15px" }}>
+      <Card.Body>
+        <h3 className="mb-4" style={{ color: currentTheme.text }}>
+          <FontAwesomeIcon icon={faCog} className="me-2" />
+          {translations[language].dashboardSettings}
+        </h3>
+        
+        <div className="d-grid gap-3">
+          <Button 
+            variant="primary" 
+            as="a" 
+            href="http://127.0.0.1:8000/contact/create"
+            target="_blank"
+            className="d-flex align-items-center justify-content-center gap-2 py-3"
+          >
+            <FontAwesomeIcon icon={faPhone} />
+            Modifier les contacts
+          </Button>
+          
+          <Button 
+            variant="secondary" 
+            as="a" 
+            href="http://127.0.0.1:8000/a-propos-ns/create"
+            target="_blank"
+            className="d-flex align-items-center justify-content-center gap-2 py-3"
+          >
+            <FontAwesomeIcon icon={faClipboardList} />
+            Modifier les services
+          </Button>
 
+          {/* Nouveau bouton pour créer un service */}
+          <Button 
+            variant="success" 
+            as="a" 
+            href="http://127.0.0.1:8000/services/create"
+            target="_blank"
+            className="d-flex align-items-center justify-content-center gap-2 py-3"
+          >
+            <FontAwesomeIcon icon={faPlus} />
+            Créer un nouveau service
+          </Button>
+        </div>
+      </Card.Body>
+    </Card>
+  );
+};
 const AdminDashboard = () => {
   const [theme, setTheme] = useState("light");
   const [language, setLanguage] = useState("fr");
@@ -1366,12 +1413,12 @@ const AdminDashboard = () => {
                 { icon: faComment, text: translations[language].avisManagement, path: "/avis" },
                 { icon: faUserMd, text: translations[language].personnelManagement, path: "/users" },
                 { icon: faClipboardList, text: translations[language].reportsStatistics, path: "/reports" },
-                { 
-                  icon: faCog, 
-                  text: translations[language].dashboardSettings, 
-                  path: "/dashboard-settings",
-                  external: "http://127.0.0.1:8000/a-propos-ns/create" 
-                }
+              
+                  { 
+                    icon: faCog, 
+                    text: translations[language].dashboardSettings, 
+                    path: "/settings"
+                  }
               ].map((item, index) => (
                 <Nav.Link 
                   key={index}
@@ -1410,6 +1457,7 @@ const AdminDashboard = () => {
                   </>
                 } 
               />
+              
               
               <Route 
                 path="/avis" 
@@ -1452,6 +1500,15 @@ const AdminDashboard = () => {
                   />
                 } 
               />
+              <Route 
+  path="/settings" 
+  element={
+    <SettingsPage 
+      currentTheme={currentTheme}
+      language={language}
+    />
+  } 
+/>
             </Routes>
           </Col>
         </Row>

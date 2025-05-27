@@ -431,3 +431,50 @@ Route::get('language/{locale}', function ($locale) {
     
     return redirect()->back();
 })->name('language.switch');
+
+
+
+
+
+
+use App\Http\Controllers\ContactController;
+    Route::get('contact/create', [ContactController::class, 'create'])->name('contact.create');
+    Route::get('/contact', [ContactController::class, 'index'])->name('contact.index');
+    Route::get('/contact/show{id}', [ContactController::class, 'show'])->name('contact.show');
+    Route::post('/contact/store', [ContactController::class, 'store'])->name('contact.store');
+    Route::get('/contact/edit/{id}', [ContactController::class, 'edit'])->name('contact.edit');
+    Route::put('/contact/update/{id}', [ContactController::class, 'update'])->name('contact.update');
+    Route::delete('/contact/destroy/{id}', [ContactController::class, 'destroy'])->name('contact.destroy');
+
+
+
+
+
+    use App\Http\Controllers\ReseauSocialController;
+Route::get('/reseaux', [ReseauSocialController::class, 'index']);
+Route::get('/reseaux/{id}', [ReseauSocialController::class, 'show']);
+Route::post('/reseaux/store', [ReseauSocialController::class, 'store']);
+Route::put('/reseaux/update/{id}', [ReseauSocialController::class, 'update']);
+Route::delete('/reseaux/destroy/{id}', [ReseauSocialController::class, 'destroy']);
+
+
+
+
+
+
+use App\Http\Controllers\ServiceController;
+Route::resource('services', ServiceController::class);
+Route::get('/service', [ServiceController::class, 'index']);
+Route::get('/services', function () {
+    return view('Services');
+});
+Route::get('/services/create', [ServiceController::class, 'create'])->name('services.create');
+Route::post('/services.create', [ServiceController::class, 'store']);
+Route::get('/services', [ServiceController::class, 'index'])->name('services.index');
+Route::post('/services/store', [ServiceController::class, 'store'])->name('services.store');
+Route::get('/services/{id}', [ServiceController::class, 'show'])->name('services.show');
+Route::post('/services/update/{id}', [ServiceController::class, 'update'])->name('services.update');
+Route::delete('/services/destroy/{id}', [ServiceController::class, 'destroy'])->name('services.destroy');
+
+
+

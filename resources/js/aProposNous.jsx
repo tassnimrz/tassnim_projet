@@ -9,7 +9,8 @@ import {
   faTrash, 
   faTimes,
   faCheck,
-  faInfoCircle
+  faInfoCircle,
+  faArrowUp
 } from "@fortawesome/free-solid-svg-icons";
 
 // Style global avec styled-components
@@ -261,6 +262,30 @@ const EmptyState = styled.div`
   }
 `;
 
+const BackToAdmin = styled.div`
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 1000;
+  background-color: var(--primary);
+  color: white;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--box-shadow);
+  cursor: pointer;
+  transition: var(--transition);
+
+  &:hover {
+    background-color: var(--secondary);
+    transform: translateY(-2px);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+  }
+`;
+
 // Composant principal
 const AProposNous = () => {
   const [content, setContent] = useState([]);
@@ -344,9 +369,18 @@ const AProposNous = () => {
     setShowForm(false);
   };
 
+  const handleBackToAdmin = () => {
+    window.location.href = "http://127.0.0.1:8000/dashboard/admin";
+  };
+
   return (
     <>
       <GlobalStyle />
+      {/* Bouton flèche pour retourner à l'admin */}
+      <BackToAdmin onClick={handleBackToAdmin}>
+        <FontAwesomeIcon icon={faArrowUp} />
+      </BackToAdmin>
+
       <Container>
         <SectionTitle>À propos de nous</SectionTitle>
         

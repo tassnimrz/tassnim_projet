@@ -20,7 +20,9 @@ export default defineConfig({
              'resources/js/PrendreRendezVous.jsx',
              'resources/js/voirrendezvous.jsx',
              'resources/js/patient_rendezvous.jsx',
-             'resources/js/aProposNous.jsx'
+             'resources/js/aProposNous.jsx',
+             'resources/js/CreateContacts.jsx',
+             'resources/js/CreateServices.jsx'
         ],
         refresh: true,
     }),
@@ -34,7 +36,7 @@ export default defineConfig({
       },
       host: '127.0.0.1',
         
-      port: 8000,
+      port: 5173
     }
     
 });
