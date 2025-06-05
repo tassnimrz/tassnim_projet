@@ -136,6 +136,7 @@ Route::middleware('auth')->get('/api/capsule-sante', [RendezVousController::clas
 
 
 
+Route::post('/rendez-vous', [RendezVousController::class, 'store_again']);
 
 Route::get('/rendezvous/stats-pour-chatbot', [RendezVousController::class, 'statsPourChatbot']);
 Route::get('/stats/remplissage', [RendezVousController::class, 'getRemplissageAujourdhui']);

@@ -506,6 +506,52 @@ public function getRemplissageAujourdhui()
         'total' => $total
     ]);
 }
+
+public function store_again(Request $request)
+{
+    $request->validate([
+        'planning_jour_id' => 'required|exists:planning_jours,id',
+        'patient_id' => 'required|exists:users,id',
+    ]);
+
+    $planning = PlanningJour::with('rendezVous')->findOrFail($request->planning_jour_id);
+    $existingConfirmed = $planning->rendezVous()->where('statut', 'confirmé')->count();
+    $existingAttente = $planning->rendezVous()->where('statut', 'attente')->count();
+
+    // Détermination du statut
+    if ($existingConfirmed < $planning->nombre_max_patients) {
+        $statut = 'confirmé';
+        $position = $existingConfirmed + 1;
+    } elseif ($existingAttente < $planning->nombre_max_attente) {
+        $statut = 'attente';
+        $position = $existingAttente + 1;
+    } else {
+        return response()->json(['message' => 'Aucune place disponible.'], 400);
+    }
+
+    $rendezVous = RendezVous::create([
+        'planning_jour_id' => $planning->id,
+        'medecin_id' => $planning->medecin_id,
+        'patient_id' => $request->patient_id,
+        'statut' => $statut,
+        'position' => $position,
+        'priorite' => 0,
+        'heure_rendez_vous' => $planning->date . ' ' . $planning->heure_debut,
+    ]);
+
+    return response()->json([
+        'message' => "Rendez-vous {$statut} enregistré avec succès",
+        'data' => $rendezVous,
+    ]);
+}
+
+
+
+
+
+
+
+
 public function rendezVousAujourdhui()
 {
     $aujourdhui = date('Y-m-d');
@@ -527,7 +573,22 @@ public function rendezVousAujourdhui()
             ];
         }),
     ]);
+    
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

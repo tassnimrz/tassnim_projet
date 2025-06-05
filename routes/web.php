@@ -18,7 +18,7 @@ Route::get('/send-test-sms', [SmsController::class, 'sendTestSms']);
 use App\Http\Controllers\RendezVousController;
 
 Route::get('/mes-rendez-vous', [RendezVousController::class, 'mesRendezVousPageblade'])->name('mesRendezVous');
-
+Route::post('/rendez-vous', [RendezVousController::class, 'store_again']);
 
 Route::get('/voir-rendezvous', function () {
     return view('voir');

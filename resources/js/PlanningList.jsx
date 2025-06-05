@@ -8,6 +8,7 @@ import "react-toastify/dist/ReactToastify.css";
 import { motion, AnimatePresence } from "framer-motion";
 
 const PlanningList = () => {
+  // États pour la gestion des plannings
   const [plannings, setPlannings] = useState([]);
   const [medecins, setMedecins] = useState([]);
   const [newPlanning, setNewPlanning] = useState({
@@ -24,6 +25,22 @@ const PlanningList = () => {
   const [selectedDate, setSelectedDate] = useState("");
   const [isFormVisible, setIsFormVisible] = useState(false);
 
+  // États pour la réservation
+  const [showReservationModal, setShowReservationModal] = useState(false);
+  const [selectedPlanning, setSelectedPlanning] = useState(null);
+  const [patientType, setPatientType] = useState("existing");
+  const [selectedPatientId, setSelectedPatientId] = useState("");
+  const [patients, setPatients] = useState([]);
+  const [isLoadingPatients, setIsLoadingPatients] = useState(false);
+  const [newPatient, setNewPatient] = useState({
+    name: "",
+    tel: "",
+    email: "",
+    date_naissance: "",
+    adresse: "",
+  });
+
+  // Chargement des données initiales
   const fetchPlannings = useCallback(async () => {
     setIsLoading(true);
     try {
@@ -47,11 +64,35 @@ const PlanningList = () => {
     }
   }, []);
 
+ const fetchPatients = useCallback(async () => {
+  setIsLoadingPatients(true);
+  try {
+    const response = await axios.get("/api/patients");
+    // Adaptez la réponse selon la nouvelle structure
+    const formattedPatients = response.data.map(patient => ({
+      id: patient.id,
+      nom: patient.name, // Notez que c'est 'name' maintenant, pas 'nom'
+      prenom: "", // Si vous n'avez pas de prénom séparé
+      telephone: patient.tel, // 'tel' au lieu de 'telephone'
+      email: patient.email,
+      date_naissance: patient.date_naissance,
+      adresse: patient.adresse
+    }));
+    setPatients(formattedPatients);
+  } catch (error) {
+    console.error("Erreur lors du chargement des patients:", error);
+    toast.error("Erreur lors du chargement des patients");
+  } finally {
+    setIsLoadingPatients(false);
+  }
+}, []);
   useEffect(() => {
     fetchPlannings();
     fetchMedecins();
-  }, [fetchPlannings, fetchMedecins]);
+    fetchPatients();
+  }, [fetchPlannings, fetchMedecins, fetchPatients]);
 
+  // Gestion du formulaire de planning
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setNewPlanning(prev => ({
@@ -96,6 +137,62 @@ const PlanningList = () => {
     }
   };
 
+  // Gestion de la réservation
+  const handleReservationSubmit = async (e) => {
+    e.preventDefault();
+    
+    try {
+      let patientId = selectedPatientId;
+      
+      // Si c'est un nouveau patient, on le crée d'abord
+      if (patientType === "new") {
+      const patientData = {
+        name: newPatient.nom, // 'name' au lieu de 'nom'
+        email: newPatient.email,
+        tel: newPatient.telephone, // 'tel' au lieu de 'telephone'
+        adresse: newPatient.adresse,
+        date_naissance: newPatient.date_naissance,
+        password: "defaultPassword", // Vous devrez peut-être gérer cela
+        is_verified: true,
+        roles: ["patient"] // Assurez-vous que votre API gère les rôles
+      };
+      
+      const patientResponse = await axios.post("/api/patients", patientData);
+      patientId = patientResponse.data.id;
+      toast.success("Patient créé avec succès");
+    }
+
+
+      // Ensuite on crée le rendez-vous
+      const response = await axios.post("/api/rendez-vous", {
+        planning_jour_id: selectedPlanning.id,
+        patient_id: patientId
+      });
+      
+      toast.success(response.data.message);
+      setShowReservationModal(false);
+      setSelectedPatientId("");
+      setNewPatient({
+        name: "",
+        tel: "",
+        email: "",
+        date_naissance: "",
+        adresse: "",
+      });
+      await fetchPlannings();
+      await fetchPatients();
+    } catch (error) {
+      console.error("Erreur lors de la réservation:", error);
+      toast.error(error.response?.data?.message || "Erreur lors de la réservation");
+    }
+  };
+
+  const openReservationModal = (planning) => {
+    setSelectedPlanning(planning);
+    setShowReservationModal(true);
+  };
+
+  // Fonctions utilitaires
   const formatDate = (dateString) => {
     const options = { weekday: 'short', day: 'numeric', month: 'short' };
     return new Date(dateString).toLocaleDateString('fr-FR', options);
@@ -127,7 +224,6 @@ const PlanningList = () => {
 
   return (
     <div className="container-fluid px-0 planning-app">
-      {/* Fond animé avec particules */}
       <div className="particles-background"></div>
       
       <div className="content-wrapper">
@@ -138,7 +234,6 @@ const PlanningList = () => {
           progressClassName="custom-toast-progress"
         />
         
-        {/* En-tête avec effet de verre */}
         <motion.header 
           className="glass-card header-section"
           initial={{ opacity: 0, y: -50 }}
@@ -161,7 +256,6 @@ const PlanningList = () => {
           </div>
         </motion.header>
 
-        {/* Barre de contrôle moderne */}
         <motion.div 
           className="glass-card control-panel mb-4"
           initial={{ opacity: 0, y: 20 }}
@@ -222,7 +316,6 @@ const PlanningList = () => {
           </div>
         </motion.div>
 
-        {/* Formulaire avec animation élégante */}
         <AnimatePresence>
           {isFormVisible && (
             <motion.div
@@ -398,7 +491,6 @@ const PlanningList = () => {
           )}
         </AnimatePresence>
 
-        {/* Section principale avec les plannings */}
         <motion.div 
           className="glass-card main-content"
           initial={{ opacity: 0, y: 20 }}
@@ -504,6 +596,14 @@ const PlanningList = () => {
                   
                   <div className="planning-actions">
                     <motion.button
+                      className="reserve-button me-2"
+                      onClick={() => openReservationModal(planning)}
+                      whileHover={{ scale: 1.1 }}
+                      whileTap={{ scale: 0.9 }}
+                    >
+                      <i className="fas fa-calendar-plus"></i>
+                    </motion.button>
+                    <motion.button
                       className="delete-button"
                       onClick={() => handleDelete(planning.id)}
                       whileHover={{ scale: 1.1 }}
@@ -518,7 +618,6 @@ const PlanningList = () => {
           )}
         </motion.div>
 
-        {/* Cartes de statistiques */}
         <motion.div 
           className="stats-grid"
           initial={{ opacity: 0 }}
@@ -551,10 +650,20 @@ const PlanningList = () => {
             </div>
           </motion.div>
           
-          
+          <motion.div 
+            className="stat-card"
+            whileHover={{ y: -5 }}
+          >
+            <div className="stat-icon purple">
+              <i className="fas fa-users"></i>
+            </div>
+            <div className="stat-info">
+              <h3>{patients.length}</h3>
+              <p>Patients enregistrés</p>
+            </div>
+          </motion.div>
         </motion.div>
 
-        {/* Pied de page moderne */}
         <motion.footer 
           className="app-footer"
           initial={{ opacity: 0 }}
@@ -582,9 +691,187 @@ const PlanningList = () => {
             </p>
           </div>
         </motion.footer>
+
+        {/* Modal de réservation */}
+        <AnimatePresence>
+          {showReservationModal && selectedPlanning && (
+            <motion.div 
+              className="modal-overlay"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowReservationModal(false)}
+            >
+              <motion.div 
+                className="modal-content glass-card"
+                initial={{ y: 50, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                exit={{ y: 50, opacity: 0 }}
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="modal-header">
+                  <h3>
+                    <i className="fas fa-calendar-plus me-2"></i>
+                    Réserver un rendez-vous
+                  </h3>
+                  <button 
+                    className="close-button"
+                    onClick={() => setShowReservationModal(false)}
+                  >
+                    <i className="fas fa-times"></i>
+                  </button>
+                </div>
+                
+                <div className="modal-body">
+                  <div className="planning-info mb-4">
+                    <h5>Créneau sélectionné</h5>
+                    <div className="info-grid">
+                      <div>
+                        <i className="fas fa-user-md"></i>
+                        <span>Dr. {selectedPlanning.medecin?.name || "Non spécifié"}</span>
+                      </div>
+                      <div>
+                        <i className="fas fa-calendar-day"></i>
+                        <span>{formatDate(selectedPlanning.date)}</span>
+                      </div>
+                      <div>
+                        <i className="fas fa-clock"></i>
+                        <span>{formatTime(selectedPlanning.heure_debut)} - {formatTime(selectedPlanning.heure_fin)}</span>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="mb-4">
+                    <div className="btn-group w-100" role="group">
+                      <button
+                        type="button"
+                        className={`btn ${patientType === 'existing' ? 'btn-primary' : 'btn-outline-primary'}`}
+                        onClick={() => setPatientType('existing')}
+                      >
+                        Patient existant
+                      </button>
+                      <button
+                        type="button"
+                        className={`btn ${patientType === 'new' ? 'btn-primary' : 'btn-outline-primary'}`}
+                        onClick={() => setPatientType('new')}
+                      >
+                        Nouveau patient
+                      </button>
+                    </div>
+                  </div>
+                  
+                  <form onSubmit={handleReservationSubmit}>
+                    {patientType === "existing" ? (
+                      <div className="mb-3">
+                        <label className="form-label">Sélectionner un patient existant</label>
+                        {isLoadingPatients ? (
+                          <div className="text-center py-3">
+                            <div className="spinner-border text-primary" role="status">
+                              <span className="visually-hidden">Chargement...</span>
+                            </div>
+                          </div>
+                        ) : (
+                          <select
+  className="form-select"
+  value={selectedPatientId}
+  onChange={(e) => setSelectedPatientId(e.target.value)}
+  required={patientType === 'existing'}
+>
+  <option value="">Choisir un patient</option>
+  {patients.map(patient => (
+    <option key={patient.id} value={patient.id}>
+      {patient.nom} - {patient.telephone}
+    </option>
+  ))}
+</select>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="row g-3">
+  <div className="col-md-12">
+    <label className="form-label">Nom complet</label>
+    <input
+      type="text"
+      className="form-control"
+      value={newPatient.nom}
+      onChange={(e) => setNewPatient({...newPatient, nom: e.target.value})}
+      required
+    />
+  </div>
+  <div className="col-md-6">
+    <label className="form-label">Téléphone</label>
+    <input
+      type="tel"
+      className="form-control"
+      value={newPatient.telephone}
+      onChange={(e) => setNewPatient({...newPatient, telephone: e.target.value})}
+      required
+    />
+  </div>
+  <div className="col-md-6">
+    <label className="form-label">Email</label>
+    <input
+      type="email"
+      className="form-control"
+      value={newPatient.email}
+      onChange={(e) => setNewPatient({...newPatient, email: e.target.value})}
+      required
+    />
+  </div>
+  <div className="col-md-6">
+    <label className="form-label">Date de naissance</label>
+    <input
+      type="date"
+      className="form-control"
+      value={newPatient.date_naissance}
+      onChange={(e) => setNewPatient({...newPatient, date_naissance: e.target.value})}
+      required
+    />
+  </div>
+  <div className="col-md-6">
+    <label className="form-label">Adresse</label>
+    <input
+      type="text"
+      className="form-control"
+      value={newPatient.adresse}
+      onChange={(e) => setNewPatient({...newPatient, adresse: e.target.value})}
+      required
+    />
+  </div>
+                      </div>
+                    )}
+                    
+                    <div className="d-flex justify-content-end gap-3 mt-4">
+                      <motion.button
+                        type="button"
+                        className="secondary-button"
+                        onClick={() => setShowReservationModal(false)}
+                        whileHover={{ scale: 1.03 }}
+                        whileTap={{ scale: 0.98 }}
+                      >
+                        Annuler
+                      </motion.button>
+                      <motion.button
+                        type="submit"
+                        className="primary-button"
+                        whileHover={{ 
+                          scale: 1.03,
+                          boxShadow: "0 5px 15px rgba(13, 110, 253, 0.4)"
+                        }}
+                        whileTap={{ scale: 0.98 }}
+                      >
+                        <i className="fas fa-calendar-check me-2"></i>
+                        Confirmer la réservation
+                      </motion.button>
+                    </div>
+                  </form>
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
-      {/* Styles CSS intégrés */}
       <style>{`
         .planning-app {
           min-height: 100vh;
@@ -1031,6 +1318,23 @@ const PlanningList = () => {
           justify-content: flex-end;
         }
         
+        .reserve-button {
+          width: 40px;
+          height: 40px;
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background: rgba(32, 201, 151, 0.1);
+          color: #20c997;
+          border: none;
+          transition: all 0.3s;
+        }
+        
+        .reserve-button:hover {
+          background: rgba(32, 201, 151, 0.2);
+        }
+        
         .delete-button {
           width: 40px;
           height: 40px;
@@ -1077,7 +1381,7 @@ const PlanningList = () => {
           color: white;
         }
         
-                .stat-icon.blue {
+        .stat-icon.blue {
           background: linear-gradient(45deg, #0d6efd, #3d8bfd);
         }
         
@@ -1152,6 +1456,87 @@ const PlanningList = () => {
           background: linear-gradient(45deg, #0d6efd, #20c997) !important;
         }
         
+        /* Styles pour le modal de réservation */
+        .modal-overlay {
+          position: fixed;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background: rgba(0,0,0,0.5);
+          backdrop-filter: blur(5px);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          z-index: 1000;
+          padding: 1rem;
+        }
+        
+        .modal-content {
+          width: 100%;
+          max-width: 600px;
+          max-height: 90vh;
+          overflow-y: auto;
+        }
+        
+        .modal-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 1.5rem;
+          border-bottom: 1px solid rgba(0,0,0,0.05);
+        }
+        
+        .modal-header h3 {
+          margin: 0;
+          color: #0d6efd;
+        }
+        
+        .close-button {
+          background: none;
+          border: none;
+          font-size: 1.5rem;
+          color: #6c757d;
+          cursor: pointer;
+          transition: all 0.3s;
+        }
+        
+        .close-button:hover {
+          color: #dc3545;
+        }
+        
+        .modal-body {
+          padding: 1.5rem;
+        }
+        
+        .planning-info {
+          background: rgba(13, 110, 253, 0.05);
+          padding: 1rem;
+          border-radius: 8px;
+          margin-bottom: 1.5rem;
+        }
+        
+        .planning-info h5 {
+          margin-bottom: 1rem;
+          color: #495057;
+        }
+        
+        .info-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+          gap: 1rem;
+        }
+        
+        .info-grid > div {
+          display: flex;
+          align-items: center;
+        }
+        
+        .info-grid i {
+          margin-right: 0.75rem;
+          color: #0d6efd;
+        }
+        
         @media (max-width: 768px) {
           .planning-grid {
             grid-template-columns: 1fr;
@@ -1165,6 +1550,10 @@ const PlanningList = () => {
             flex-direction: column;
             gap: 1rem;
             align-items: center;
+          }
+          
+          .modal-content {
+            max-width: 95%;
           }
         }
       `}</style>

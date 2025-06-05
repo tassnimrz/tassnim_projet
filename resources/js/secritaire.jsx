@@ -840,17 +840,8 @@ function Header({ onToggleSidebar, toggleTheme, theme }) {
         </div>
 
         <div className="dropdown">
-          <button 
-            className={`btn btn-sm dropdown-toggle ${theme === 'dark' ? 'btn-outline-light' : 'btn-outline-primary'}`}
-            type="button"
-            id="languageDropdown"
-            data-bs-toggle="dropdown"
-            aria-expanded="false"
-            style={{ border: 'none', color: theme === 'dark' ? '#e9d5ff' : '#8b5cf6' }}
-          >
-            <Globe className="me-1" style={{ color: theme === 'dark' ? '#e9d5ff' : '#8b5cf6' }} /> 
-            {langue === 'fr' ? 'FR' : 'EN'}
-          </button>
+          
+           
           <ul className={`dropdown-menu ${theme === 'dark' ? 'bg-gray-800' : ''}`} aria-labelledby="languageDropdown">
             <li><button className={`dropdown-item ${theme === 'dark' ? 'text-white' : ''}`} onClick={() => setLangue('fr')}>🇫🇷 Français</button></li>
             <li><button className={`dropdown-item ${theme === 'dark' ? 'text-white' : ''}`} onClick={() => setLangue('en')}>🇬🇧 English</button></li>
@@ -881,7 +872,7 @@ function Header({ onToggleSidebar, toggleTheme, theme }) {
               <PersonCircle size={24} className="me-2" style={{ color: '#8b5cf6' }} />
               <span className="position-absolute bottom-0 end-0 p-1 bg-success border border-light rounded-circle"></span>
             </div>
-            <span className="fw-bold d-none d-md-inline">Mme Dupont</span>
+            <span className="fw-bold d-none d-md-inline"></span>
           </button>
           <ul className={`dropdown-menu dropdown-menu-end ${theme === 'dark' ? 'bg-gray-800' : ''}`}>
             <li><button className={`dropdown-item ${theme === 'dark' ? 'text-white' : ''}`}>Mon profil</button></li>
