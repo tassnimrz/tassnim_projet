@@ -1,0 +1,16 @@
+# Annuler dernier commit sans perdre les modifications
+git reset --soft HEAD^
+
+# Ajouter du contenu aux fichiers et commiter
+echo "Ajout question 14" >> file2.txt
+echo "Ajout question 14" >> file3.txt
+git add file2.txt file3.txt
+git commit -m "ajout contenu aux fichiers file2.txt et file3.txt"
+
+# Ajouter file.css
+echo "body { background-color: lightblue; }" > file.css
+git add file.css
+git commit -m "ajout file.css"
+
+# Annuler le dernier commit sans altérer l’historique
+git revert HEADy
